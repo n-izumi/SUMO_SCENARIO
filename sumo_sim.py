@@ -511,7 +511,8 @@ class SumoSim:
         distance = np.linalg.norm(s-r)
         if abs(distance) < 2.0:
             print("衝突を検知しました")
-            self.collision_history_output()
+            self.sumo_log.info("-----衝突を検知しました-----")
+            self.collision_history_output(s_vehicle_id, r_vehicle_id)
             return True
 
         return False
@@ -1906,13 +1907,10 @@ class SumoSim:
     def get_leading_vehicle(self, detector_id, detection = True):
         # 検出器上のすべての車両ID取得
         vehicle_ids = traci.lanearea.getLastStepVehicleIDs(detector_id)
-        print(vehicle_ids)
 
         leading_vehicle_id = None   # 先頭車両ID格納変数
         for vehicle_id in vehicle_ids:
             vehicle_position = self.set_vehicle_position(detection, detector_id, vehicle_id, True)
-            print(vehicle_id)
-            print(vehicle_position)
             if not vehicle_position:
                 continue
             # 1台目の場合、先頭車両に設定して次の車両
@@ -2208,7 +2206,7 @@ class SumoSim:
         return False
 
     # 衝突発生履歴
-    def collision_history_output(self):
+    def collision_history_output(self, s_vehicle_id, r_vehicle_id):
         straight_detector_id = self.settings["STRAIGHT_CONSTRUCTION_BAND_DETECTOR"]
         regulation_detector_id = self.settings["REGULATION_CONSTRUCTION_BAND_DETECTOR"]
         file_name = "detCADanger.txt"
@@ -2216,9 +2214,9 @@ class SumoSim:
         sim_time_stamp = self.get_sim_time()
         
         # ストレート側の車両
-        straight_data = self.collision_history_detection_data(straight_detector_id, 1)
+        straight_data = self.collision_history_detection_data(straight_detector_id, 1, s_vehicle_id)
         # 規制側の車両
-        regulation_data = self.collision_history_detection_data(regulation_detector_id, 2)
+        regulation_data = self.collision_history_detection_data(regulation_detector_id, 2, r_vehicle_id)
 
         output_data = [str(sim_time_stamp), str(time_stamp), straight_data, regulation_data]
         # 枝道分のデータ格納
@@ -2228,7 +2226,7 @@ class SumoSim:
         self.detCADanger(file_name, output_data)
 
     # 衝突情報取得
-    def collision_history_detection_data(self, detector_id, lane_kind):
+    def collision_history_detection_data(self, detector_id, lane_kind, vehicle_id):
         if lane_kind == 1:
             det_id = "0021"
             detection = True
@@ -2240,10 +2238,10 @@ class SumoSim:
         
         vehicle_ids = traci.lanearea.getLastStepVehicleIDs(detector_id)
         construction_vehicle_number = str(len(vehicle_ids))
-        leading_vehicle_id = self.get_leading_vehicle(detector_id, detection)
-        print(leading_vehicle_id)
-        leading_vehicle_distance = str(traci.lanearea.getVehicleDistToDetectorEnd(detector_id, leading_vehicle_id))
-        leading_vehicle_speed = str(traci.vehicle.getSpeed(leading_vehicle_id) * 3600 / 1000)
+        # leading_vehicle_id = self.get_leading_vehicle(detector_id, detection)
+        # print(leading_vehicle_id)
+        leading_vehicle_distance = str(traci.lanearea.getVehicleDistToDetectorEnd(detector_id, vehicle_id))
+        leading_vehicle_speed = str(traci.vehicle.getSpeed(vehicle_id) * 3600 / 1000)
         construction_vehicle_id = "{" + ",".join(vehicle_ids) + "}"
         result = "{%s, %s, %s, %s, %s}" % (det_id, construction_vehicle_number, leading_vehicle_distance, leading_vehicle_speed, construction_vehicle_id)
         return result
