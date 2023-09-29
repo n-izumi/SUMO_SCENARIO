@@ -232,14 +232,16 @@ class SumoSim:
         self.output_header()
         self.sim_start_end_time()
 
+        t_old = -1
+
         while traci.simulation.getTime() <= self.sim_time:
             traci.simulationStep()
             # 全車両の検出フラグやナンバー割り当て
             self.set_vehicle_info()
             
-            # システム時間の取得
-            t_now = datetime.datetime.now()
-            t_old = datetime.datetime.now()
+            # シミュレーション時間の取得
+            t_now = traci.simulation.getTime()
+            # t_old = datetime.datetime.now()
             # print(self.get_sim_time())
 
             # 各コマンド処理呼び出し
