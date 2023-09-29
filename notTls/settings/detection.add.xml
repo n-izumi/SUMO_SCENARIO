@@ -1,0 +1,16 @@
+<additional>    
+    <inductionLoop id="straightIn" lane="E2_0" pos="0" length="5" file="Tjiro.out.xml"/>    <!--工事帯内ストレート車線(右)入り口-->
+    <inductionLoop id="straightOut" lane="E2_0" pos="-5" length="5" file="Tjiro.out.xml"/>    <!--工事帯内ストレート車線(右)出口-->
+
+    <inductionLoop id="regulationIn" lane="-E2_0" pos="0" length="5" file="Tjiro.out.xml"/>    <!--工事帯内規制車線(左)入り口-->
+    <inductionLoop id="regulationOut" lane="-E2_0" pos="-5" length="5" file="Tjiro.out.xml"/>    <!--工事帯内規制車線(左)出口-->
+
+    <laneAreaDetector id="SI" lanes="E0_0 E1_0" friendlyPos="false" file="Tjiro.out.xml"/>   <!--ストレート車線(右)入口側-->
+    <laneAreaDetector id="SO" lanes="E3_0 B_0" friendlyPos="false" file="Tjiro.out.xml"/>    <!--ストレート車線(右)出口側-->
+    <laneAreaDetector id="CS" lanes="E2_0" friendlyPos="false" file="Tjiro.out.xml"/>    <!--ストレート車線(右)出口側-->
+
+    <laneAreaDetector id="RI" lanes="-B_0 -E3_0" friendlyPos="false" file="Tjiro.out.xml"/>   <!--規制車線(左)入口側-->
+    <laneAreaDetector id="RO" lanes="-E1_0 -E0_0" friendlyPos="false" file="Tjiro.out.xml"/>  <!--規制車線(左)出口側-->
+    <laneAreaDetector id="CR" lanes="-E2_0" friendlyPos="false" file="Tjiro.out.xml"/>    <!--ストレート車線(右)出口側-->
+    
+</additional>
