@@ -418,7 +418,7 @@ class SumoSim:
             # １秒ごとに送信するロジック
             if step > 0:
                 t_delta = t_now - t_old
-                if t_delta.seconds >= 1:
+                if t_delta >= 1:
                     if self.settings["FLAG_VEHICLE_DETECTION_FRONT_SENSOR"] == "TRUE":
                         self.sumo_log.info("-----------------------------工事帯センサ前車両検出-----------------------------")
                         f006_0100 = self.vehicle_detection_front_sensor(self.main_node_id)
@@ -563,9 +563,9 @@ class SumoSim:
         command['EventID'] = "_".join([nodeID, str(timeStamp)])
         command['TimeStamp'] = str(timeStamp)
         value['Color'] = str(color)
-        value['GreenTime'] = str(greenTime * 1000)
-        value['RedTime'] = str(redTime * 1000)
-        value['YellowTime'] = str(yellowTime * 1000)
+        value['GreenTime'] = str(int(greenTime * 1000))
+        value['RedTime'] = str(int(redTime * 1000))
+        value['YellowTime'] = str(int(yellowTime * 1000))
         value['ChangeTimeStamp'] = str(self.get_time())
         value['TopLeft'] = ""
         value['BottomRight'] = ""
@@ -723,8 +723,7 @@ class SumoSim:
 
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[0]
-
-            value['VehicleType'] = str(self.get_vehicle_type(id))
+            value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
             value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -757,7 +756,7 @@ class SumoSim:
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[0]
 
-            value['VehicleType'] = str(self.get_vehicle_type(id))
+            value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
             value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -830,7 +829,7 @@ class SumoSim:
 
             vehicleState = 0
             stopTime = str(traci.vehicle.getWaitingTime(id))
-            vehicleType = str(self.get_vehicle_type(id))
+            vehicleType = self.vehicle_info[str(id)]["VehicleType"]
             number = self.vehicle_info[str(id)]["OutputNumber"]
             topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             bottomRight = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
@@ -896,7 +895,7 @@ class SumoSim:
 
                 vehicleState = 1
                 stopTime = str(traci.vehicle.getWaitingTime(id))
-                vehicleType = str(self.get_vehicle_type(id))
+                vehicleType = self.vehicle_info[str(id)]["VehicleType"]
                 number = self.vehicle_info[str(id)]["OutputNumber"]
                 topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
                 bottomRight = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
@@ -1012,7 +1011,7 @@ class SumoSim:
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[0]
 
-            value['VehicleType'] = str(self.get_vehicle_type(id))
+            value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
             value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1050,7 +1049,7 @@ class SumoSim:
                 # バウンディングボックス処理
                 vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[0]
 
-                value['VehicleType'] = str(self.get_vehicle_type(id))
+                value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
                 value['VehicleState'] = str(vehicleState)
                 value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
                 value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1128,7 +1127,7 @@ class SumoSim:
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[0]
 
-            value['VehicleType'] = str(self.get_vehicle_type(id))
+            value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
             value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1166,7 +1165,7 @@ class SumoSim:
                 # バウンディングボックス処理
                 vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[0]
 
-                value['VehicleType'] = str(self.get_vehicle_type(id))
+                value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
                 value['VehicleState'] = str(vehicleState)
                 value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
                 value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1269,6 +1268,11 @@ class SumoSim:
             value['Distance'] = "0.0"
             value['Speed'] = "0.0"
             valuelist.append(value)
+        
+        # ソート
+        valuelist = sorted(valuelist, key=lambda x: float(x["Speed"]), reverse=True)
+        valuelist = sorted(valuelist, key=lambda x: float(x["Distance"]), reverse=False)
+        valuelist = sorted(valuelist, key=lambda x: int(x["ComFlag"]), reverse=True)
 
         command['Value'] = valuelist
 
@@ -1342,7 +1346,8 @@ class SumoSim:
             approach_detector_id = "regulationIn"
             secession_detector_id = "regulationOut"
 
-        if traci.inductionloop.getLastStepVehicleNumber(approach_detector_id) > 0 or traci.inductionloop.getLastStepVehicleNumber(secession_detector_id):
+        # if traci.inductionloop.getLastStepVehicleNumber(approach_detector_id) > 0 or traci.inductionloop.getLastStepVehicleNumber(secession_detector_id):
+        if traci.inductionloop.getLastStepVehicleNumber(secession_detector_id):
             vehicleflag = 1
         else:
             vehicleflag = 0
@@ -1389,7 +1394,7 @@ class SumoSim:
             vehicleType = -1
         elif typeID == "normal":           # 普通車
             vehicleType = 0
-        elif typeID == "track":         # トラック
+        elif typeID == "track" or typeID == "large":         # トラック
             vehicleType = 1
         elif typeID == "bus":           # バス   
             vehicleType = 2
@@ -1666,6 +1671,7 @@ class SumoSim:
                 dictId["Number"] = str(number)
                 dictId["EntryFlag"] = "False"
                 dictId["BreakawayFlag"] = "False"
+                dictId["VehicleType"] = str(self.get_vehicle_type(id))
                 self.vehicle_info[str(id)] = dictId
                 #print(self.vehicle_info)
 
