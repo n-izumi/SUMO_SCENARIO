@@ -196,7 +196,7 @@ class SumoSim:
                 "--ignore-junction-blocker", str(60),
                 "--time-to-teleport", "-1",
                 "--window-size", "1280,1024",
-                # "--start", "--quit-on-end",
+                "--start", "--quit-on-end",
                 "--scenario-name", self.scenario_name,
                 "--construction-length", self.public_settings["ZoneLength"] + "m",
                 "--straight-tls-green", self.straight_green_time,
