@@ -95,15 +95,21 @@ class SumoSim:
         self.regulation_yellow_time = ""
         self.regulation_red_time = ""
         if "1" in self.signal_settings:
-            self.straight_green_time = self.signal_settings["1"]["GreenTime"]
-            self.straight_yellow_time = self.signal_settings["1"]["YellowTime"]
-            self.straight_red_time = self.signal_settings["1"]["RedTime"]
+            self.straight_green_time = str(int(int(self.signal_settings["1"]["GreenTime"]) / 1000))
+            self.straight_yellow_time = str(int(int(self.signal_settings["1"]["YellowTime"]) / 1000))
+            self.straight_red_time = str(int(int(self.signal_settings["1"]["RedTime"]) / 1000))
         if "2" in self.signal_settings:
-            self.regulation_green_time = self.signal_settings["2"]["GreenTime"]
-            self.regulation_yellow_time = self.signal_settings["2"]["YellowTime"]
-            self.regulation_red_time = self.signal_settings["2"]["RedTime"]
+            self.regulation_green_time = str(int(int(self.signal_settings["2"]["GreenTime"]) / 1000))
+            self.regulation_yellow_time = str(int(int(self.signal_settings["2"]["YellowTime"]) / 1000))
+            self.regulation_red_time = str(int(int(self.signal_settings["2"]["RedTime"]) / 1000))
         self.simulation_setting()
         step_length = int(self.settings["FRAME_RATE"]) / 1000
+        self.straight_traffic_volume = ""
+        self.regulation_traffic_volume = ""
+        if "STRAIGHT_TRAFFIC_VOLUME" in self.settings:
+            self.straight_traffic_volume = self.settings["STRAIGHT_TRAFFIC_VOLUME"]
+        if "REGULATION_TRAFFIC_VOLUME" in self.settings:
+            self.regulation_traffic_volume = self.settings["REGULATION_TRAFFIC_VOLUME"]
 
         self.sumo_config = os.path.join(scenario_path, options.sumo_config)
 
@@ -208,8 +214,8 @@ class SumoSim:
                 "--branch-tls-green", "",
                 "--branch-tls-yellow", "",
                 "--branch-tls-red", "",
-                "--straight-traffic-volume", "",
-                "--regulation-traffic-volume", "",
+                "--straight-traffic-volume", self.straight_traffic_volume,
+                "--regulation-traffic-volume", self.regulation_traffic_volume,
                 "--simulation-speed", str(self.sim_speed)
             ]
         )
