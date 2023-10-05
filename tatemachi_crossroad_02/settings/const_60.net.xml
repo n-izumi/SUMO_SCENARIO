@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-09-26 03:34:24 by Eclipse SUMO netedit Version 1.17.0
+<!-- generated on 2023-10-05 10:37:59 by Eclipse SUMO netedit Version 1.17.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/traffic/trafficsimulator/sumoSimulator/Cross/scenario_1/../settings/const_60.net.xml"/>
+        <sumo-net-file value="/home/traffic/SUMO_SCENARIO/tatemachi_crossroad_02/scenario_1/../settings/const_60.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/traffic/trafficsimulator/sumoSimulator/Cross/scenario_1/../settings/const_60.net.xml"/>
+        <output-file value="/home/traffic/SUMO_SCENARIO/tatemachi_crossroad_02/scenario_1/../settings/const_60.net.xml"/>
     </output>
 
     <processing>
@@ -34,7 +34,7 @@
 
 <net version="1.16" junctionCornerDetail="5" lefthand="true" limitTurnSpeed="5.50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
 
-    <location netOffset="0.00,0.00" convBoundary="-85.00,-103.00,115.00,177.00" origBoundary="-10000000000.00,-10000000000.00,10000000000.00,10000000000.00" projParameter="!"/>
+    <location netOffset="0.00,0.00" convBoundary="-85.00,-233.00,115.00,177.00" origBoundary="-10000000000.00,-10000000000.00,10000000000.00,10000000000.00" projParameter="!"/>
 
     <edge id=":RS_0" function="internal">
         <lane id=":RS_0_0" index="0" speed="13.89" length="3.50" shape="13.40,-45.69 13.37,-44.65 13.34,-43.93 13.39,-43.22 13.59,-42.21"/>
@@ -43,10 +43,10 @@
         <lane id=":RS_1_0" index="0" speed="13.89" length="3.47" shape="16.60,-42.25 16.60,-45.72"/>
     </edge>
     <edge id=":R_CZ_0" function="internal">
-        <lane id=":R_CZ_0_0" index="0" speed="12.50" length="0.10" shape="16.67,-29.50 16.62,-29.51"/>
+        <lane id=":R_CZ_0_0" index="0" speed="12.50" length="0.10" shape="16.67,-29.50 16.62,-29.52"/>
     </edge>
     <edge id=":R_CZ_1" function="internal">
-        <lane id=":R_CZ_1_0" index="0" speed="12.50" length="0.10" shape="16.60,-29.51 16.60,-29.50"/>
+        <lane id=":R_CZ_1_0" index="0" speed="12.50" length="0.10" shape="16.60,-29.52 16.60,-29.51"/>
     </edge>
     <edge id=":SS_0" function="internal">
         <lane id=":SS_0_0" index="0" speed="13.89" length="3.23" shape="13.50,49.36 13.37,50.31 13.35,50.97 13.38,51.62 13.40,52.58"/>
@@ -110,7 +110,7 @@
     </edge>
 
     <edge id="-B" from="B" to="RS" priority="-1">
-        <lane id="-B_0" index="0" speed="13.89" length="57.31" shape="13.40,-103.00 13.40,-45.69"/>
+        <lane id="-B_0" index="0" speed="13.89" length="187.31" shape="13.40,-233.00 13.40,-45.69"/>
     </edge>
     <edge id="-E0" from="SS" to="Top" priority="-1" length="27.00">
         <lane id="-E0_0" index="0" speed="13.89" length="27.00" shape="13.40,52.58 13.40,77.00"/>
@@ -119,7 +119,7 @@
         <lane id="-E1_0" index="0" speed="13.89" length="19.83" customShape="1" shape="16.68,29.79 13.50,49.36"/>
     </edge>
     <edge id="-E2" from="R_CZ" to="S_CZ" priority="-1">
-        <lane id="-E2_0" index="0" speed="11.11" length="59.05" customShape="1" shape="16.62,-29.51 16.70,29.54"/>
+        <lane id="-E2_0" index="0" speed="11.11" length="59.06" customShape="1" shape="16.62,-29.52 16.70,29.54"/>
     </edge>
     <edge id="-E3" from="RS" to="R_CZ" priority="-1">
         <lane id="-E3_0" index="0" speed="13.89" length="13.08" customShape="1" shape="13.59,-42.21 16.67,-29.50"/>
@@ -134,7 +134,7 @@
         <lane id="-TW_0" index="0" speed="13.89" length="92.80" shape="-85.00,85.80 7.80,85.80"/>
     </edge>
     <edge id="B" from="RS" to="B" priority="-1">
-        <lane id="B_0" index="0" speed="13.89" length="57.28" shape="16.60,-45.72 16.60,-103.00"/>
+        <lane id="B_0" index="0" speed="13.89" length="187.28" shape="16.60,-45.72 16.60,-233.00"/>
     </edge>
     <edge id="E0" from="Top" to="SS" priority="-1" length="27.00">
         <lane id="E0_0" index="0" speed="13.89" length="27.00" shape="16.60,77.00 16.60,52.59"/>
@@ -143,10 +143,10 @@
         <lane id="E1_0" index="0" speed="13.89" length="19.61" shape="16.60,49.39 16.60,29.78"/>
     </edge>
     <edge id="E2" from="S_CZ" to="R_CZ" priority="-1">
-        <lane id="E2_0" index="0" speed="11.11" length="59.04" shape="16.60,29.54 16.60,-29.51"/>
+        <lane id="E2_0" index="0" speed="11.11" length="59.06" shape="16.60,29.54 16.60,-29.52"/>
     </edge>
     <edge id="E3" from="R_CZ" to="RS" priority="-1">
-        <lane id="E3_0" index="0" speed="13.89" length="12.75" shape="16.60,-29.50 16.60,-42.25"/>
+        <lane id="E3_0" index="0" speed="13.89" length="12.74" shape="16.60,-29.51 16.60,-42.25"/>
     </edge>
     <edge id="E4" from="Top" to="J0" priority="-1">
         <lane id="E4_0" index="0" speed="13.89" length="85.60" shape="13.40,91.40 13.40,177.00"/>
@@ -173,7 +173,7 @@
         <phase duration="30" state="Gr"/>
     </tlLogic>
 
-    <junction id="B" type="dead_end" x="15.00" y="-103.00" incLanes="B_0" intLanes="" shape="15.00,-103.00 18.20,-103.00 15.00,-103.00"/>
+    <junction id="B" type="dead_end" x="15.00" y="-233.00" incLanes="B_0" intLanes="" shape="15.00,-233.00 18.20,-233.00 15.00,-233.00"/>
     <junction id="J0" type="dead_end" x="15.00" y="177.00" incLanes="E4_0" intLanes="" shape="15.00,177.00 11.80,177.00 15.00,177.00"/>
     <junction id="J1" type="dead_end" x="-85.00" y="84.20" incLanes="TW_0" intLanes="" shape="-85.00,84.20 -85.00,81.00 -85.00,84.20"/>
     <junction id="J3" type="dead_end" x="115.00" y="84.20" incLanes="TE_0" intLanes="" shape="115.00,84.20 115.00,87.40 115.00,84.20"/>
@@ -181,7 +181,7 @@
         <request index="0" response="00" foes="00" cont="0"/>
         <request index="1" response="00" foes="00" cont="0"/>
     </junction>
-    <junction id="R_CZ" type="priority" x="15.00" y="-30.00" incLanes="-E3_0 E2_0" intLanes=":R_CZ_0_0 :R_CZ_1_0" shape="15.02,-29.50 18.20,-29.49 15.02,-29.50">
+    <junction id="R_CZ" type="priority" x="15.00" y="-30.00" incLanes="-E3_0 E2_0" intLanes=":R_CZ_0_0 :R_CZ_1_0" shape="15.02,-29.52 18.20,-29.50 15.02,-29.52">
         <request index="0" response="00" foes="00" cont="0"/>
         <request index="1" response="00" foes="00" cont="0"/>
     </junction>

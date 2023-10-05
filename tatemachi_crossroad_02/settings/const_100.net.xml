@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-09-26 03:33:32 by Eclipse SUMO netedit Version 1.17.0
+<!-- generated on 2023-10-05 10:40:52 by Eclipse SUMO netedit Version 1.17.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/traffic/trafficsimulator/sumoSimulator/Cross/scenario_3/../settings/const_100.net.xml"/>
+        <sumo-net-file value="/home/traffic/SUMO_SCENARIO/tatemachi_crossroad_02/scenario_3/../settings/const_100.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/traffic/trafficsimulator/sumoSimulator/Cross/scenario_3/../settings/const_100.net.xml"/>
+        <output-file value="/home/traffic/SUMO_SCENARIO/tatemachi_crossroad_02/scenario_3/../settings/const_100.net.xml"/>
     </output>
 
     <processing>
@@ -34,7 +34,7 @@
 
 <net version="1.16" junctionCornerDetail="5" lefthand="true" limitTurnSpeed="5.50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
 
-    <location netOffset="0.00,0.00" convBoundary="-85.00,-143.00,115.00,177.00" origBoundary="-10000000000.00,-10000000000.00,10000000000.00,10000000000.00" projParameter="!"/>
+    <location netOffset="0.00,0.00" convBoundary="-85.00,-273.00,115.00,177.00" origBoundary="-10000000000.00,-10000000000.00,10000000000.00,10000000000.00" projParameter="!"/>
 
     <edge id=":RS_0" function="internal">
         <lane id=":RS_0_0" index="0" speed="13.89" length="0.77" shape="13.40,-82.31 13.44,-82.10 13.54,-81.97 13.66,-81.85 13.75,-81.64"/>
@@ -110,13 +110,13 @@
     </edge>
 
     <edge id="-B" from="B" to="RS" priority="-1">
-        <lane id="-B_0" index="0" speed="13.89" length="60.69" shape="13.40,-143.00 13.40,-82.31"/>
+        <lane id="-B_0" index="0" speed="13.89" length="190.69" shape="13.40,-273.00 13.40,-82.31"/>
     </edge>
     <edge id="-E0" from="SS" to="Top" priority="-1" length="27.00">
         <lane id="-E0_0" index="0" speed="13.89" length="27.00" shape="13.40,49.79 13.40,77.00"/>
     </edge>
     <edge id="-E1" from="S_CZ" to="SS" priority="-1">
-        <lane id="-E1_0" index="0" speed="13.89" length="21.07" customShape="1" shape="16.95,28.87 13.46,49.66"/>
+        <lane id="-E1_0" index="0" speed="13.89" length="21.08" customShape="1" shape="16.95,28.87 13.46,49.66"/>
     </edge>
     <edge id="-E2" from="R_CZ" to="S_CZ" priority="-1">
         <lane id="-E2_0" index="0" speed="11.11" length="99.19" customShape="1" shape="16.57,-70.55 16.59,28.64"/>
@@ -134,7 +134,7 @@
         <lane id="-TW_0" index="0" speed="13.89" length="92.80" shape="-85.00,85.80 7.80,85.80"/>
     </edge>
     <edge id="B" from="RS" to="B" priority="-1">
-        <lane id="B_0" index="0" speed="13.89" length="60.98" shape="16.60,-82.02 16.60,-143.00"/>
+        <lane id="B_0" index="0" speed="13.89" length="190.98" shape="16.60,-82.02 16.60,-273.00"/>
     </edge>
     <edge id="E0" from="Top" to="SS" priority="-1" length="27.00">
         <lane id="E0_0" index="0" speed="13.89" length="27.00" shape="16.60,77.00 16.60,49.73"/>
@@ -173,7 +173,7 @@
         <phase duration="30" state="Gr"/>
     </tlLogic>
 
-    <junction id="B" type="dead_end" x="15.00" y="-143.00" incLanes="B_0" intLanes="" shape="15.00,-143.00 18.20,-143.00 15.00,-143.00"/>
+    <junction id="B" type="dead_end" x="15.00" y="-273.00" incLanes="B_0" intLanes="" shape="15.00,-273.00 18.20,-273.00 15.00,-273.00"/>
     <junction id="J0" type="dead_end" x="15.00" y="177.00" incLanes="E4_0" intLanes="" shape="15.00,177.00 11.80,177.00 15.00,177.00"/>
     <junction id="J1" type="dead_end" x="-85.00" y="84.20" incLanes="TW_0" intLanes="" shape="-85.00,84.20 -85.00,81.00 -85.00,84.20"/>
     <junction id="J3" type="dead_end" x="115.00" y="84.20" incLanes="TE_0" intLanes="" shape="115.00,84.20 115.00,87.40 115.00,84.20"/>

@@ -1,9 +1,9 @@
 [
     {
         "LaneKind": "0",
-        "Signal": "0",
-        "TJunctionFlg": "0",
-        "DistanceToSignal": "0",
+        "Signal": "1",
+        "TJunctionFlg": "1",
+        "DistanceToSignal": "47",
         "StopLineAndZoneBranchCnt": "0",
         "BaseImagePath": "/var/www/html/admin/Images/demo_main.jpg",
         "KanriSendFlg": "1"

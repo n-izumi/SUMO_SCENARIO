@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-10-05 10:43:42 by Eclipse SUMO GUI Version 1.17.0
+<!-- generated on 2023-10-05 10:42:14 by Eclipse SUMO GUI Version 1.17.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="/home/traffic/SUMO_SCENARIO/tatemachi_t-junction_02/scenario_4/../settings/const_100.net.xml"/>
-        <route-files value="/home/traffic/SUMO_SCENARIO/tatemachi_t-junction_02/scenario_4/../settings/traffic_1.rou.xml"/>
-        <additional-files value="/home/traffic/SUMO_SCENARIO/tatemachi_t-junction_02/scenario_4/../settings/detection.add.xml"/>
+        <net-file value="/home/traffic/SUMO_SCENARIO/tatemachi_no_signal_02/scenario_3/../settings/const_100.net.xml"/>
+        <route-files value="/home/traffic/SUMO_SCENARIO/tatemachi_no_signal_02/scenario_3/../settings/traffic_2.rou.xml"/>
+        <additional-files value="/home/traffic/SUMO_SCENARIO/tatemachi_no_signal_02/scenario_3/../settings/detection.add.xml"/>
     </input>
 
     <time>
@@ -17,7 +17,7 @@
         <ignore-junction-blocker value="60"/>
         <time-to-teleport value="-1"/>
         <simulation-speed value="1.0"/>
-        <scenario-name value="tatemachi_t-junction_02/scenario_4"/>
+        <scenario-name value="tatemachi_no_signal_02/scenario_3"/>
         <construction-length value="100m"/>
         <straight-tls-green value=""/>
         <straight-tls-yellow value=""/>
@@ -33,7 +33,7 @@
     </processing>
 
     <traci_server>
-        <remote-port value="36493"/>
+        <remote-port value="48347"/>
     </traci_server>
 
     <random_number>

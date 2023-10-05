@@ -50,6 +50,8 @@ class SumoSim:
         optParser.add_option("--sim-config", default="Set.json", help="sumo simulation config file")
         optParser.add_option("--seed", type=int, help="random seed")
         optParser.add_option("--time", type=int, help="sim time")
+        optParser.add_option("--sim-speed", type=float, help="sim speed")
+        optParser.add_option("--double-speed", action="store_true", default=False, help="sim speed")
         optParser.add_option("--log", action="store_true",
                             default=False, help="log flag")
         optParser.add_option("--output-directory", default="result", help="output directory")
@@ -71,17 +73,39 @@ class SumoSim:
             print("シナリオを指定してください。")
             sys.exit()
 
-        scenario_name = os.path.join("/home/traffic/SUMO_SCENARIO", options.map, options.scenario)
+        self.scenario_name = os.path.join(options.map, options.scenario)
+
+        scenario_path = os.path.join("/home/traffic/SUMO_SCENARIO", self.scenario_name)
         self.sim_time = options.time
         
         # 設定ファイル読み込み
-        self.settings_name = os.path.join(scenario_name, options.sim_config)
+        self.settings_name = os.path.join(scenario_path, options.sim_config)
+        self.lane_settings_name = os.path.join(scenario_path, "json/lane_settings.json")
+        self.public_settings_name = os.path.join(scenario_path, "json/public_settings.json")
+        self.signal_settings_name = os.path.join(scenario_path, "json/signal_settings.json")
         # print(self.settings_name)
         self.settings = self.setting_read(self.settings_name)
+        self.lane_settings = self.setting_read(self.lane_settings_name)
+        self.public_settings = self.setting_read(self.public_settings_name)
+        self.signal_settings = self.setting_read(self.signal_settings_name)
+        self.straight_green_time = ""
+        self.straight_yellow_time = ""
+        self.straight_red_time = ""
+        self.regulation_green_time = ""
+        self.regulation_yellow_time = ""
+        self.regulation_red_time = ""
+        if "1" in self.signal_settings:
+            self.straight_green_time = self.signal_settings["1"]["GreenTime"]
+            self.straight_yellow_time = self.signal_settings["1"]["YellowTime"]
+            self.straight_red_time = self.signal_settings["1"]["RedTime"]
+        if "2" in self.signal_settings:
+            self.regulation_green_time = self.signal_settings["2"]["GreenTime"]
+            self.regulation_yellow_time = self.signal_settings["2"]["YellowTime"]
+            self.regulation_red_time = self.signal_settings["2"]["RedTime"]
         self.simulation_setting()
         step_length = int(self.settings["FRAME_RATE"]) / 1000
 
-        self.sumo_config = os.path.join(scenario_name, options.sumo_config)
+        self.sumo_config = os.path.join(scenario_path, options.sumo_config)
 
         # ランダムのシード設定
         if options.seed != None:
@@ -133,6 +157,10 @@ class SumoSim:
         else:
             sumoBinary = sumolib.checkBinary('sumo-gui')
 
+        self.sim_speed = 1.0
+        if options.double_speed:
+            self.sim_speed = 2.0
+
         # print(traci.getVersion())
         # this is the normal way of using traci. sumo is started as a
         # # subprocess and then the python script connects and runs
@@ -168,7 +196,21 @@ class SumoSim:
                 "--ignore-junction-blocker", str(60),
                 "--time-to-teleport", "-1",
                 "--window-size", "1280,1024",
-                "--start", "--quit-on-end"
+                # "--start", "--quit-on-end",
+                "--scenario-name", self.scenario_name,
+                "--construction-length", self.public_settings["ZoneLength"] + "m",
+                "--straight-tls-green", self.straight_green_time,
+                "--straight-tls-yellow", self.straight_yellow_time,
+                "--straight-tls-red", self.straight_red_time,
+                "--regulation-tls-green", self.regulation_green_time,
+                "--regulation-tls-yellow", self.regulation_yellow_time,
+                "--regulation-tls-red", self.regulation_red_time,
+                "--branch-tls-green", "",
+                "--branch-tls-yellow", "",
+                "--branch-tls-red", "",
+                "--straight-traffic-volume", "",
+                "--regulation-traffic-volume", "",
+                "--simulation-speed", str(self.sim_speed)
             ]
         )
         self.run()
