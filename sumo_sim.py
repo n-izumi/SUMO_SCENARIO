@@ -55,6 +55,7 @@ class SumoSim:
         optParser.add_option("--log", action="store_true",
                             default=False, help="log flag")
         optParser.add_option("--new-signal-event", type=int, default=0, help="new signal event flag")
+        optParser.add_option("--auto-start", type=int, default=0, help="new signal event flag")
         optParser.add_option("--output-directory", default="result", help="output directory")
         optParser.add_option("--state-prefix", action="store_true", dest="statePrefix", default="state",
                             help="prefix for synchronized state files")
@@ -125,6 +126,10 @@ class SumoSim:
         self.new_signal_event_flg = False
         if options.new_signal_event:
             self.new_signal_event_flg = True
+
+        self.auto_start = ""
+        if options.auto_start:
+            self.auto_start = "--start"
 
         # ランダムのシード設定
         if options.seed != None:
@@ -205,8 +210,7 @@ class SumoSim:
             
     def sumo_run(self, sumoBinary, step_length, seed):
         time.sleep(5)
-        traci.start(
-            [
+        sumo_option = [
                 sumoBinary,
                 "-c", self.sumo_config,
                 "--step-length", str(step_length),
@@ -215,7 +219,7 @@ class SumoSim:
                 "--ignore-junction-blocker", str(60),
                 "--time-to-teleport", "-1",
                 "--window-size", "1280,1024",
-                "--start", "--quit-on-end",
+                "--quit-on-end",
                 "--scenario-name", self.scenario_name,
                 "--construction-length", self.public_settings["ZoneLength"] + "m",
                 "--straight-tls-green", self.straight_green_time,
@@ -231,7 +235,9 @@ class SumoSim:
                 "--regulation-traffic-volume", self.regulation_traffic_volume,
                 "--simulation-speed", str(self.sim_speed)
             ]
-        )
+        if not self.auto_start == "":
+            sumo_option.append(self.auto_start)
+        traci.start(sumo_option)
         self.run()
         traci.close()
         # os.kill(os.getpid(), 9)

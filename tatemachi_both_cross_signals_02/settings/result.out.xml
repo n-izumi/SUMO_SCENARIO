@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2023-10-13 02:21:44 by Eclipse SUMO GUI Version 1.17.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="/home/traffic/SUMO_SCENARIO/tatemachi_both_cross_signals_02/scenario_2/../settings/const_60.net.xml"/>
+        <route-files value="/home/traffic/SUMO_SCENARIO/tatemachi_both_cross_signals_02/scenario_2/../settings/traffic_1.rou.xml"/>
+        <additional-files value="/home/traffic/SUMO_SCENARIO/tatemachi_both_cross_signals_02/scenario_2/../settings/detection.add.xml"/>
+    </input>
+
+    <time>
+        <step-length value="0.2"/>
+    </time>
+
+    <processing>
+        <ignore-junction-blocker value="60"/>
+        <time-to-teleport value="-1"/>
+        <simulation-speed value="1.0"/>
+        <scenario-name value="tatemachi_both_cross_signals_02/scenario_2"/>
+        <construction-length value="60m"/>
+        <straight-tls-green value="19"/>
+        <straight-tls-yellow value="3"/>
+        <straight-tls-red value="43"/>
+        <regulation-tls-green value="19"/>
+        <regulation-tls-yellow value="3"/>
+        <regulation-tls-red value="43"/>
+        <branch-tls-green value=""/>
+        <branch-tls-yellow value=""/>
+        <branch-tls-red value=""/>
+        <straight-traffic-volume value="357"/>
+        <regulation-traffic-volume value="263"/>
+    </processing>
+
+    <traci_server>
+        <remote-port value="37123"/>
+    </traci_server>
+
+    <random_number>
+        <seed value="1"/>
+    </random_number>
+
+    <gui_only>
+        <quit-on-end value="true"/>
+        <delay value="1000"/>
+        <window-size value="1280,1024"/>
+    </gui_only>
+
+</configuration>
