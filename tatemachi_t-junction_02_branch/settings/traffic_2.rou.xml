@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <vType id="normal" accel="3" decel="6.5" sigma="0" length="5" minGap="1.5" vClass="passenger" maxSpeed="14" carFollowModel="IDM"/>
+    <vType id="bus" accel="3" decel="5.5" sigma="0" length="11" minGap="1.5" vClass="bus" maxSpeed="11" carFollowModel="IDM" color="1,0,0"/> <!--赤色-->
+    <vType id="large" accel="3" decel="6.5" sigma="0" length="12" minGap="1.5" vClass="truck" maxSpeed="14" carFollowModel="IDM" color="0,0,1"/> <!--青色-->
+    
+    <flow id="TE1" type="normal" from="-TE" to="TW" begin="0" end="3600" probability="0.06"/>
+    <flow id="TE2" type="bus" from="-TE" to="TW" begin="0" end="3600" probability="0.0016"/>
+    <flow id="TE3" type="large" from="-TE" to="TW" begin="0" end="3600" probability="0.005"/>
+
+    <flow id="TE4" type="normal" from="-TE" to="B" begin="0" end="3600" probability="0.04"/>
+    <flow id="TE5" type="bus" from="-TE" to="B" begin="0" end="3600" probability="0.001"/>
+    <flow id="TE6" type="large" from="-TE" to="B" begin="0" end="3600" probability="0.004"/>
+
+    <flow id="TW1" type="normal" from="-TW" to="TE" begin="0" end="3600" probability="0.1"/>
+    <flow id="TW2" type="bus" from="-TW" to="TE" begin="0" end="3600" probability="0.002"/>
+    <flow id="TW3" type="large" from="-TW" to="TE" begin="0" end="3600" probability="0.005"/>
+
+    <flow id="TW4" type="normal" from="-TW" to="B" begin="0" end="3600" probability="0.04"/>
+    <flow id="TW5" type="bus" from="-TW" to="B" begin="0" end="3600" probability="0.001"/>
+    <flow id="TW6" type="large" from="-TW" to="B" begin="0" end="3600" probability="0.002"/>
+
+    <flow id="B1" type="normal" from="-B" to="TE" begin="0" end="3600" probability="0.035"/>
+    <flow id="B2" type="bus" from="-B" to="TE" begin="0" end="3600" probability="0.001"/>
+    <flow id="B3" type="large" from="-B" to="TE" begin="0" end="3600" probability="0.001"/>
+
+    <flow id="B4" type="normal" from="-B" to="TW" begin="0" end="3600" probability="0.035"/>
+    <flow id="B5" type="bus" from="-B" to="TW" begin="0" end="3600" probability="0.001"/>
+    <flow id="B6" type="large" from="-B" to="TW" begin="0" end="3600" probability="0.001"/>
+    
+    <!-- <flow id="BtoW_n" type="normal" from="-E4" to="TE" begin="0" end="3600" probability="0.0028"/>
+    <flow id="BtoE_n" type="normal" from="-E4" to="TW" begin="0" end="3600" probability="0.0028"/>
+    <flow id="BtoN_n" type="normal" from="-E4" to="B" begin="0" end="3600" probability="0.0028"/>
+    <flow id="WtoB_n" type="normal" from="-TE" to="E4" begin="0" end="3600" probability="0.0028"/>
+    <flow id="EtoB_n" type="normal" from="-TW" to="E4" begin="0" end="3600" probability="0.0028"/>
+    <flow id="NtoB_n" type="normal" from="-B" to="E4" begin="0" end="3600" probability="0.0028"/> -->
+
+<!-- 
+    <flow id="TE1" type="normal" from="-TE" to="TW" begin="0" end="3600" number="111"/>
+    <flow id="TE2" type="bus" from="-TE" to="TW" begin="0" end="3600" number="3"/>
+    <flow id="TE3" type="large" from="-TE" to="TW" begin="0" end="3600" number="9"/>
+
+    <flow id="TE4" type="normal" from="-TE" to="B" begin="0" end="3600" number="74"/>
+    <flow id="TE5" type="bus" from="-TE" to="B" begin="0" end="3600" number="2"/>
+    <flow id="TE6" type="large" from="-TE" to="B" begin="0" end="3600" number="6"/>
+
+    <flow id="TW1" type="normal" from="-TW" to="TE" begin="0" end="3600" number="175"/>
+    <flow id="TW2" type="bus" from="-TW" to="TE" begin="0" end="3600" number="4"/>
+    <flow id="TW3" type="large" from="-TW" to="TE" begin="0" end="3600" number="9"/>
+
+    <flow id="TW4" type="normal" from="-TW" to="B" begin="0" end="3600" number="75"/>
+    <flow id="TW5" type="bus" from="-TW" to="B" begin="0" end="3600" number="2"/>
+    <flow id="TW6" type="large" from="-TW" to="B" begin="0" end="3600" number="4"/>
+
+    <flow id="B1" type="normal" from="-B" to="TE" begin="0" end="3600" number="62"/>
+    <flow id="B2" type="bus" from="-B" to="TE" begin="0" end="3600" number="2"/>
+    <flow id="B3" type="large" from="-B" to="TE" begin="0" end="3600" number="2"/>
+
+    <flow id="B4" type="normal" from="-B" to="TW" begin="0" end="3600" number="64"/>
+    <flow id="B5" type="bus" from="-B" to="TW" begin="0" end="3600" number="2"/>
+    <flow id="B6" type="large" from="-B" to="TW" begin="0" end="3600" number="2"/> -->
+
+</routes>
