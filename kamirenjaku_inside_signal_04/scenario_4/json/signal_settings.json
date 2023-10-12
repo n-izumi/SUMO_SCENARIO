@@ -1,8 +1,8 @@
 {
-    "1": {
+    "2": {
         "InitialColor": "1",
-        "GreenTime": "19000",
+        "GreenTime": "51000",
         "YellowTime": "3000",
-        "RedTime": "43000"
+        "RedTime": "26000"
     }
 }

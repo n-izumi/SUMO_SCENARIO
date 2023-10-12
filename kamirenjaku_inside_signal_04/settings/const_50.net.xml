@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-10-12 02:11:40 by Eclipse SUMO netedit Version 1.17.0
+<!-- generated on 2023-10-12 11:41:26 by Eclipse SUMO netedit Version 1.17.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="/home/traffic/SUMO_SCENARIO/kamirenjaku_inside_signal_04/scenario_1/../settings/const_50.net.xml"/>
+        <sumocfg-file value="/home/traffic/SUMO_SCENARIO/kamirenjaku_inside_signal_04/scenario_2/sumo.sumocfg"/>
+        <additional-files value="/home/traffic/SUMO_SCENARIO/kamirenjaku_inside_signal_04/scenario_2/../settings/detection.add.xml"/>
+        <route-files value="/home/traffic/SUMO_SCENARIO/kamirenjaku_inside_signal_04/scenario_2/../settings/traffic_2.rou.xml"/>
+        <sumo-net-file value="/home/traffic/SUMO_SCENARIO/kamirenjaku_inside_signal_04/scenario_2/../settings/const_50.net.xml"/>
     </input>
 
     <output>
-        <output-file value="/home/traffic/SUMO_SCENARIO/kamirenjaku_inside_signal_04/scenario_1/../settings/const_50.net.xml"/>
+        <output-file value="/home/traffic/SUMO_SCENARIO/kamirenjaku_inside_signal_04/scenario_2/../settings/const_50.net.xml"/>
     </output>
 
     <processing>
@@ -79,10 +82,10 @@
         <lane id=":E_J_6_0" index="0" speed="8.00" length="10.13" shape="179.00,85.16 181.60,83.60 183.25,80.85 183.80,77.00"/>
     </edge>
     <edge id=":Regu_0" function="internal">
-        <lane id=":Regu_0_0" index="0" speed="13.89" length="0.10" shape="75.20,82.60 75.26,82.60"/>
+        <lane id=":Regu_0_0" index="0" speed="13.89" length="0.10" shape="75.20,82.60 75.25,82.60"/>
     </edge>
     <edge id=":Regu_1" function="internal">
-        <lane id=":Regu_1_0" index="0" speed="13.89" length="0.10" shape="75.26,82.48 75.26,82.57"/>
+        <lane id=":Regu_1_0" index="0" speed="13.89" length="0.10" shape="75.26,82.48 75.24,82.57"/>
     </edge>
     <edge id=":Regu_stop_0" function="internal">
         <lane id=":Regu_stop_0_0" index="0" speed="13.89" length="0.10" shape="65.77,82.60 65.70,82.60"/>
@@ -182,7 +185,7 @@
         <lane id="N_out_0" index="0" speed="13.89" length="92.80" shape="13.40,91.40 13.40,184.20"/>
     </edge>
     <edge id="Regu_1" from="Regu" to="Branch_J" priority="-1">
-        <lane id="Regu_1_0" index="0" speed="13.89" length="17.83" customShape="1" shape="75.26,82.57 93.09,82.57"/>
+        <lane id="Regu_1_0" index="0" speed="13.89" length="17.85" customShape="1" shape="75.24,82.57 93.09,82.57"/>
     </edge>
     <edge id="Regu_2" from="Branch_J" to="St" priority="-1">
         <lane id="Regu_2_0" index="0" speed="13.89" length="17.54" customShape="1" shape="107.40,82.62 124.94,82.62"/>
@@ -191,7 +194,7 @@
         <lane id="Regu_in_0" index="0" speed="13.89" length="9.99" customShape="1" shape="65.77,85.61 75.26,82.48"/>
     </edge>
     <edge id="Regu_out" from="Regu" to="Regu_stop" priority="-1">
-        <lane id="Regu_out_0" index="0" speed="13.89" length="9.49" shape="75.26,82.60 65.77,82.60"/>
+        <lane id="Regu_out_0" index="0" speed="13.89" length="9.48" shape="75.25,82.60 65.77,82.60"/>
     </edge>
     <edge id="S_in" from="S_0" to="E_J" priority="-1">
         <lane id="S_in_0" index="0" speed="13.89" length="92.80" shape="180.60,-15.80 180.60,77.00"/>
@@ -247,12 +250,12 @@
         <phase duration="82" state="rG"/>
     </tlLogic>
     <tlLogic id="W_J" type="static" programID="0" offset="0">
-        <phase duration="51" state="GgrrGG"/>
-        <phase duration="3"  state="yyrryy"/>
-        <phase duration="3"  state="rrrrrr"/>
-        <phase duration="17" state="rrGGrr"/>
-        <phase duration="3"  state="rryyrr"/>
-        <phase duration="3"  state="rrrrrr"/>
+        <phase duration="51" state="GgrrGG" name="Green"/>
+        <phase duration="3"  state="yyrryy" name="Yellow"/>
+        <phase duration="3"  state="rrrrrr" name="Red"/>
+        <phase duration="17" state="rrGGrr" name="Red"/>
+        <phase duration="3"  state="rryyrr" name="Red"/>
+        <phase duration="3"  state="rrrrrr" name="Red"/>
     </tlLogic>
 
     <junction id="Branch_0" type="dead_end" x="100.20" y="-15.80" incLanes="Branch_out_0" intLanes="" shape="100.20,-15.80 103.40,-15.80 100.20,-15.80"/>
@@ -275,7 +278,7 @@
     </junction>
     <junction id="Hos" type="dead_end" x="-35.00" y="134.20" incLanes="Hos_out_0" intLanes="" shape="-35.00,134.20 -38.20,134.20 -35.00,134.20"/>
     <junction id="N_0" type="dead_end" x="15.00" y="184.20" incLanes="N_out_0" intLanes="" shape="15.00,184.20 11.80,184.20 15.00,184.20"/>
-    <junction id="Regu" type="priority" x="75.20" y="84.20" incLanes="St_2_0 Regu_in_0" intLanes=":Regu_0_0 :Regu_1_0" shape="75.26,81.00 75.26,84.17 75.26,81.00">
+    <junction id="Regu" type="priority" x="75.20" y="84.20" incLanes="St_2_0 Regu_in_0" intLanes=":Regu_0_0 :Regu_1_0" shape="75.24,81.00 75.24,84.17 75.25,81.00">
         <request index="0" response="00" foes="00" cont="0"/>
         <request index="1" response="00" foes="00" cont="0"/>
     </junction>

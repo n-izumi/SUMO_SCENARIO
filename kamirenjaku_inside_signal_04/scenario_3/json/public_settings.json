@@ -1,7 +1,7 @@
 {
     "ZoneLength": "80",
     "ZoneBranchCnt": "0",
-    "IntersectionInsideFlg": "0",
-    "ZoneDistanceToSignalSt": "0",
+    "IntersectionInsideFlg": "2",
+    "ZoneDistanceToSignalSt": "35",
     "KanriSendFlg": "1"
 }
