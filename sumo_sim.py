@@ -95,14 +95,22 @@ class SumoSim:
         self.regulation_green_time = ""
         self.regulation_yellow_time = ""
         self.regulation_red_time = ""
+        self.construction_green_time = ""
+        self.construction_yellow_time = ""
+        self.construction_red_time = ""
         if "1" in self.signal_settings:
             self.straight_green_time = str(int(int(self.signal_settings["1"]["GreenTime"]) / 1000))
             self.straight_yellow_time = str(int(int(self.signal_settings["1"]["YellowTime"]) / 1000))
             self.straight_red_time = str(int(int(self.signal_settings["1"]["RedTime"]) / 1000))
         if "2" in self.signal_settings:
-            self.regulation_green_time = str(int(int(self.signal_settings["2"]["GreenTime"]) / 1000))
-            self.regulation_yellow_time = str(int(int(self.signal_settings["2"]["YellowTime"]) / 1000))
-            self.regulation_red_time = str(int(int(self.signal_settings["2"]["RedTime"]) / 1000))
+            if self.public_settings["IntersectionInsideFlg"] == "2":
+                self.construction_green_time = str(int(int(self.signal_settings["2"]["GreenTime"]) / 1000))
+                self.construction_yellow_time = str(int(int(self.signal_settings["2"]["YellowTime"]) / 1000))
+                self.construction_red_time = str(int(int(self.signal_settings["2"]["RedTime"]) / 1000))
+            else:
+                self.regulation_green_time = str(int(int(self.signal_settings["2"]["GreenTime"]) / 1000))
+                self.regulation_yellow_time = str(int(int(self.signal_settings["2"]["YellowTime"]) / 1000))
+                self.regulation_red_time = str(int(int(self.signal_settings["2"]["RedTime"]) / 1000))
         self.simulation_setting()
         step_length = int(self.settings["FRAME_RATE"]) / 1000
         self.straight_traffic_volume = ""
@@ -216,9 +224,9 @@ class SumoSim:
                 "--regulation-tls-green", self.regulation_green_time,
                 "--regulation-tls-yellow", self.regulation_yellow_time,
                 "--regulation-tls-red", self.regulation_red_time,
-                "--branch-tls-green", "",
-                "--branch-tls-yellow", "",
-                "--branch-tls-red", "",
+                "--branch-tls-green", self.construction_green_time,
+                "--branch-tls-yellow", self.construction_yellow_time,
+                "--branch-tls-red", self.construction_red_time,
                 "--straight-traffic-volume", self.straight_traffic_volume,
                 "--regulation-traffic-volume", self.regulation_traffic_volume,
                 "--simulation-speed", str(self.sim_speed)
