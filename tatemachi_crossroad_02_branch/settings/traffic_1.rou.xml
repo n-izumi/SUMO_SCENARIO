@@ -53,6 +53,14 @@
     <flow id="E48" type="bus" from="-E4" to="B" begin="0" end="3600" probability="0.001"/>
     <flow id="E49" type="large" from="-E4" to="B" begin="0" end="3600" probability="0.001"/>
     
+    <flow id="BtoW_n" type="normal" from="-E5" to="TE" begin="0" end="3600" probability="0.0028"/>
+    <flow id="BtoE_n" type="normal" from="-E5" to="TW" begin="0" end="3600" probability="0.0028"/>
+    <flow id="BtoS_n" type="normal" from="-E5" to="E4" begin="0" end="3600" probability="0.0028"/>
+    <flow id="BtoN_n" type="normal" from="-E5" to="B" begin="0" end="3600" probability="0.0028"/>
+    <flow id="WtoB_n" type="normal" from="-TE" to="E5" begin="0" end="3600" probability="0.0028"/>
+    <flow id="EtoB_n" type="normal" from="-TW" to="E5" begin="0" end="3600" probability="0.0028"/>
+    <flow id="StoB_n" type="normal" from="-E4" to="E5" begin="0" end="3600" probability="0.0028"/>
+    <flow id="NtoB_n" type="normal" from="-B" to="E5" begin="0" end="3600" probability="0.0028"/>
 <!-- 
     <flow id="TE1" type="normal" from="-TE" to="TW" begin="0" end="3600" number="111"/>
     <flow id="TE2" type="bus" from="-TE" to="TW" begin="0" end="3600" number="3"/>

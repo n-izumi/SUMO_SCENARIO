@@ -54,6 +54,7 @@ class SumoSim:
         optParser.add_option("--double-speed", action="store_true", default=False, help="sim speed")
         optParser.add_option("--log", action="store_true",
                             default=False, help="log flag")
+        optParser.add_option("--new-signal-event", type=int, default=0, help="new signal event flag")
         optParser.add_option("--output-directory", default="result", help="output directory")
         optParser.add_option("--state-prefix", action="store_true", dest="statePrefix", default="state",
                             help="prefix for synchronized state files")
@@ -112,6 +113,10 @@ class SumoSim:
             self.regulation_traffic_volume = self.settings["REGULATION_TRAFFIC_VOLUME"]
 
         self.sumo_config = os.path.join(scenario_path, options.sumo_config)
+
+        self.new_signal_event_flg = False
+        if options.new_signal_event:
+            self.new_signal_event_flg = True
 
         # ランダムのシード設定
         if options.seed != None:
@@ -247,8 +252,6 @@ class SumoSim:
         """execute the TraCI control loop"""
         step = 0
         count = 0
-        mode = "straight"
-        tlsFlag = False
         straight_new_tlsState = ""
         straight_old_tlsState = ""
         regulation_new_tlsState = ""
@@ -304,13 +307,21 @@ class SumoSim:
 
                         # KPIログ出力
                         self.traffic_light_history(1, straight_new_tlsState)
-                        # 信号機認識
-                        f001_0000 = self.traffic_light_recognition(self.settings["STRAIGHT_TRAFFIC_LIGHT"], self.main_node_id)
                         straight_old_tlsState = straight_new_tlsState
+                        # 既設信号機認識
+                        if not self.new_signal_event_flg:
+                            f001_0000 = self.traffic_light_recognition(self.settings["STRAIGHT_TRAFFIC_LIGHT"], self.main_node_id)
+                            # print(f001_0000)
+                            self.sumo_log.info(f001_0000)
+                            self.send(self.set_command(f001_0000))
+                    
+                    # 新規信号機認識
+                    if self.new_signal_event_flg:
+                        f001_0000 = self.new_traffic_light_recognition(self.settings["STRAIGHT_TRAFFIC_LIGHT"], self.main_node_id)
                         # print(f001_0000)
                         self.sumo_log.info(f001_0000)
                         self.send(self.set_command(f001_0000))
-                
+            
                 # 規制側信号機
                 if self.settings["REGULATION_TRAFFIC_LIGHT"] != "":
                     regulation_new_tlsState = traci.trafficlight.getPhaseName(self.settings["REGULATION_TRAFFIC_LIGHT"])
@@ -319,13 +330,21 @@ class SumoSim:
 
                         # KPIログ出力
                         self.traffic_light_history(2, regulation_new_tlsState)
-                        # 信号機認識
-                        f001_0000 = self.traffic_light_recognition(self.settings["REGULATION_TRAFFIC_LIGHT"], self.sub_node_id)
                         regulation_old_tlsState = regulation_new_tlsState
+                        # 信号機認識
+                        if not self.new_signal_event_flg:
+                            f001_0000 = self.traffic_light_recognition(self.settings["REGULATION_TRAFFIC_LIGHT"], self.sub_node_id)
+                            # print(f001_0000)
+                            self.sumo_log.info(f001_0000)
+                            self.send(self.set_command(f001_0000))
+                    
+                    # 新規信号機認識
+                    if self.new_signal_event_flg:
+                        f001_0000 = self.new_traffic_light_recognition(self.settings["REGULATION_TRAFFIC_LIGHT"], self.sub_node_id)
                         # print(f001_0000)
                         self.sumo_log.info(f001_0000)
                         self.send(self.set_command(f001_0000))
-                    
+            
             # メインPC(ストレート側処理)
             self.sumo_log.info("-----------------------------メインPC-----------------------------")
             
@@ -422,6 +441,7 @@ class SumoSim:
             self.sumo_log.info("-----------------------------枝道-----------------------------")
             
             # 枝道の数分ループ
+            # print(self.branch_info)
             for branch_node in self.branch_info:
                 node_id = branch_node["node_id"]
                 # print(node_id)
@@ -592,11 +612,6 @@ class SumoSim:
                     yellowTime += phase.duration
                 if phase.name == "Red":
                     redTime += phase.duration
-            # greenTime = logic.phases[0].duration
-            # yellowTime = logic.phases[1].duration
-            # redTime = logic.phases[2].duration
-            # redTime += logic.phases[3].duration
-            # print(greenTime, yellowTime, redTime)
             break
         if state == "Red":
             color = 2
@@ -621,6 +636,50 @@ class SumoSim:
         value['Score'] = str(1.0)
         valuelist.append(value)
         command['Value'] = valuelist
+
+        return command
+
+    # 新規信号機認識
+    def new_traffic_light_recognition(self, tlsID, nodeID):
+        command = {}
+        valuelist = []
+        value = {}
+        #print(traci.trafficlight.getAllProgramLogics(tlsID))
+        programId = traci.trafficlight.getProgram(tlsID)
+        timeStamp = self.get_time()
+        state = traci.trafficlight.getPhaseName(tlsID)
+        greenTime = 0
+        yellowTime = 0
+        redTime = 0
+        for logic in traci.trafficlight.getAllProgramLogics(tlsID):
+            # print(logic)
+            # print(programId)
+            if logic.programID != programId:
+                continue
+
+            for phase in logic.phases:
+                if phase.name == "Green":
+                    greenTime += phase.duration
+                elif phase.name == "Yellow":
+                    yellowTime += phase.duration
+                if phase.name == "Red":
+                    redTime += phase.duration
+            break
+        if state == "Red":
+            color = 2
+        elif state == "Yellow":
+            color = 1
+        elif state == "Green":
+            color = 0
+        else:
+            color = -1
+
+        command['CommandID'] = "0xF0010010"
+        command['EventID'] = "_".join([nodeID, str(timeStamp)])
+        command['TimeStamp'] = str(timeStamp)
+        value['Color'] = str(color)
+        # valuelist.append(value)
+        command['Value'] = value
 
         return command
 
@@ -1474,7 +1533,7 @@ class SumoSim:
         branch_info = []
         for i, approach_detector_id_list in enumerate(self.settings["NODES_APPROACH_DETECTOR"].split(" ")):
             secession_detector_id_list = self.settings["NODES_SECESSION_DETECTOR"].split(" ")[i]
-            node_id = "BoxPC" + str(i + 3).zfill(2)
+            node_id = "NODEPC" + str(i + 3).zfill(2)
             info = {}
             info["node_id"] = node_id
             approach_detector_id = approach_detector_id_list.split(",")
@@ -2106,8 +2165,8 @@ class SumoSim:
                 detector_id = self.settings["REGULATION_APPROACH_DETECTOR"]
                 lane_kind = 2
             else:
-                node_num = int(key[4:])
-                detector_id = self.settings["NODES_APPROACH_DETECTOR"].split(",")[node_num - 1]
+                node_num = int(key[6:])
+                detector_id = self.settings["NODES_APPROACH_DETECTOR"].split(",")[node_num - 3]
                 lane_kind = node_num + 2
 
             if not detector_id:
@@ -2244,8 +2303,8 @@ class SumoSim:
                 detector_id = self.settings["REGULATION_APPROACH_DETECTOR"]
                 lane_kind = 2
             else:
-                node_num = int(key[4:])
-                detector_id = self.settings["NODES_APPROACH_DETECTOR"].split(",")[node_num - 1]
+                node_num = int(key[6:])
+                detector_id = self.settings["NODES_APPROACH_DETECTOR"].split(",")[node_num - 3]
                 lane_kind = node_num + 2
 
             vehicle_ids = traci.lanearea.getLastStepVehicleIDs(detector_id)
@@ -2386,12 +2445,14 @@ class SumoSim:
     def output_header(self):
         datalist = []
         self.GuideTrafficLight("guideTrafficLight.txt", "")
+        # print(self.leading_vehicle_info)
         for key, value in self.leading_vehicle_info.items():
             if key == "straight":
                 lane_kind = 1
             elif key == "regulation":
                 lane_kind = 2
             else:
+                # print(node_num)
                 node_num = int(key[4:])
                 lane_kind = node_num + 2
 
