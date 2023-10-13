@@ -1896,7 +1896,7 @@ class SumoSim:
     # 誘導状態更新
     def lane_state_update(self, value_list):
         for value in value_list:
-            self.set_traffic_state(value["LaneKind"], value["TrafficGuideState"])
+            self.set_traffic_state(value["LaneKind"], value["SystemState"])
         
         return
 
@@ -2551,16 +2551,16 @@ class SumoSim:
             result = ''
         
         # コマンドID判定
-        if command_id == "0x00000070":
+        # if command_id == "0x00000070":
             # 車線状態更新要求を受信した際の処理
-            self.lane_state_update(values)
 
-        elif command_id == "0x00000080":
+        if command_id == "0x00000080":
             # 工事帯通過状態更新要求を受信した際の処理
             self.construction_passing_state_update(values[0])
 
-        elif command_id == "0x00000060":
+        if command_id == "0x00000060":
             # システム判断状態更新要求を受信した際の処理
+            self.lane_state_update(values)
             self.check_collision_caution(values)
 
         res = make_response(result)
