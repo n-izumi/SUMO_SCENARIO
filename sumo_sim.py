@@ -35,6 +35,7 @@ import traci
 print(os.environ["SUMO_HOME"])
 
 class SumoSim:
+    START_GUIDE_FILE = "/home/traffic/trafficsimulator/GuideCommand/start_guide"
     sim_time = 3600
     run_flg = True
 
@@ -209,7 +210,6 @@ class SumoSim:
         # self.run()
             
     def sumo_run(self, sumoBinary, step_length, seed):
-        time.sleep(5)
         sumo_option = [
                 sumoBinary,
                 "-c", self.sumo_config,
@@ -237,6 +237,7 @@ class SumoSim:
             ]
         if not self.auto_start == "":
             sumo_option.append(self.auto_start)
+
         traci.start(sumo_option)
         self.run()
         traci.close()
@@ -280,6 +281,17 @@ class SumoSim:
                 tls_key = "node" + str(i + 1)
                 self.tls_state_list[tls_key] = self.set_traffic_state_signal(node_traffic_guide_id)
                 self.tls_state_list[tls_key]["id"] = node_traffic_guide_id
+        print("tls_state_list: ")
+        print(self.tls_state_list)
+
+        if not self.auto_start == "":
+            # 自動開始モードの場合、交通誘導開始してからSUMOを起動
+            while True:
+                if os.path.isfile(self.START_GUIDE_FILE):
+                    break
+
+                time.sleep(1)
+
         # self.traffic_guide_change_history()
         # print(self.congestion_vehicle_number)
         # self.set_detector_lane("RO")
@@ -900,6 +912,7 @@ class SumoSim:
         approach_detector_lane = None
         secession_detector_lane = None
         tls_id = ""
+        detection_range_min = float(self.settings["VEHICLE_DETECTION_DISTANCE_MIN"])
         if nodeID == self.main_node_id:
             approach_detector_id = self.settings["STRAIGHT_APPROACH_DETECTOR"]
             secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
@@ -913,6 +926,7 @@ class SumoSim:
             # print(branch_data)
             approach_detector_id = branch_data["approach"]["id"][0]
             secession_detector_id = branch_data["secession"]["id"]
+            detection_range_min = 0
 
 
         command['CommandID'] = "0xF0010700"
@@ -942,7 +956,7 @@ class SumoSim:
                 continue
 
             # 車両が検出範囲内に入っていない場合次に車両へ
-            if vehicle_position < float(self.settings["VEHICLE_DETECTION_DISTANCE_MIN"]) or vehicle_position > float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"]):
+            if vehicle_position < detection_range_min or vehicle_position > float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"]):
                 continue
 
             # バウンディングボックス処理
@@ -1085,6 +1099,7 @@ class SumoSim:
         approach_detector_lane = None
         secession_detector_lane = None
         tls_id = ""
+        detection_range_min = float(self.settings["VEHICLE_DETECTION_DISTANCE_MIN"])
         if nodeID == self.main_node_id:
             approach_detector_id = self.settings["STRAIGHT_APPROACH_DETECTOR"]
             secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
@@ -1097,6 +1112,7 @@ class SumoSim:
             branch_data = self.get_branch_data(nodeID)
             approach_detector_id = branch_data["approach"]["id"][0]
             secession_detector_id = branch_data["secession"]["id"]
+            detection_range_min = 0
 
 
         command['CommandID'] = "0xF0010800"
@@ -1126,7 +1142,7 @@ class SumoSim:
                 continue
 
             # 車両が検出範囲内に入っていない場合次に車両へ
-            if vehicle_position < float(self.settings["VEHICLE_DETECTION_DISTANCE_MIN"]) or vehicle_position > float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"]):
+            if vehicle_position < detection_range_min or vehicle_position > float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"]):
                 continue
 
             # バウンディングボックス処理
@@ -1203,6 +1219,7 @@ class SumoSim:
         timeStamp = self.get_time()
         inFlag = True
         tls_id = ""
+        detection_range_min = float(self.settings["VEHICLE_DETECTION_DISTANCE_MIN"])
         if nodeID == self.main_node_id:
             approach_detector_id = self.settings["STRAIGHT_APPROACH_DETECTOR"]
             secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
@@ -1215,6 +1232,7 @@ class SumoSim:
             branch_data = self.get_branch_data(nodeID)
             approach_detector_id = branch_data["approach"]["id"][0]
             secession_detector_id = branch_data["secession"]["id"]
+            detection_range_min = 0
 
         command['CommandID'] = "0xF0010900"
         command['EventID'] = "_".join([nodeID, str(timeStamp)])
@@ -1242,7 +1260,7 @@ class SumoSim:
                 continue
 
             # 車両が検出範囲内に入っていない場合次に車両へ
-            if vehicle_position < float(self.settings["VEHICLE_DETECTION_DISTANCE_MIN"]) or vehicle_position > float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"]):
+            if vehicle_position < detection_range_min or vehicle_position > float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"]):
                 continue
 
             # バウンディングボックス処理
@@ -1877,16 +1895,16 @@ class SumoSim:
         if passed_time.seconds >= 5:
             # 工事帯内車両なし操作
             # print("タイムアウト解除")
-            result = self.construction_vehicle_none_operation("Tablet01")
-            self.send(self.set_command(result))
-            self.sumo_log.info("-----------------------------タイムアウト解除-----------------------------")
-            self.sumo_log.info(result)
             if self.collision_caution:
                 result = self.collision_caution_release_operation("Tablet01")
                 self.send(self.set_command(result))
                 self.sumo_log.info("-----------------------------緊急停止解除-----------------------------")
                 self.sumo_log.info(result)
                 self.collision_caution = False
+            result = self.construction_vehicle_none_operation("Tablet01")
+            self.send(self.set_command(result))
+            self.sumo_log.info("-----------------------------タイムアウト解除-----------------------------")
+            self.sumo_log.info(result)
             self.construction_vehicle_time = None
             self.time_out_flag = False
             self.time_out_history_flag = False

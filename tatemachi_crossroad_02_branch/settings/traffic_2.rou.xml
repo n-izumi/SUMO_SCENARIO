@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
-    <vType id="normal" accel="3" decel="6.5" sigma="0" length="5" minGap="1.5" vClass="passenger" maxSpeed="14"/>
+    <vType id="normal" accel="3" decel="6.5" sigma="0" length="5" minGap="2.5" vClass="passenger" maxSpeed="14"/>
     <vType id="bus" accel="3" decel="5.5" sigma="0" length="11" minGap="3" vClass="bus" maxSpeed="11" color="1,0,0"/> <!--赤色-->
     <vType id="large" accel="3" decel="6.5" sigma="0" length="12" minGap="2.5" vClass="truck" maxSpeed="14" color="0,0,1"/> <!--青色-->
 
