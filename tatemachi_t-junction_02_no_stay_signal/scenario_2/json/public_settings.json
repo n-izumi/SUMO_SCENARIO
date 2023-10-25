@@ -1,0 +1,10 @@
+{
+    "ZoneLength": "60",
+    "ZoneBranchCnt": "0",
+    "IntersectionInsideFlg": "0",
+    "ZoneDistanceToSignalSt": "0",
+    "KanriSendFlg": "1",
+    "CooperationFlg": "1",
+    "CooperationStaffSide": "0",
+    "CooperationKind": "1"
+}
