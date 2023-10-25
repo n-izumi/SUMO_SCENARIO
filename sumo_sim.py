@@ -2017,7 +2017,12 @@ class SumoSim:
             number = self.vehicle_info[leading_vehicle_id]["Number"]
 
             # 先頭車両が検出範囲外の場合車両なしの情報をセット
-            if leading_vehicle_position >= detection_range or leading_vehicle_position < 0:
+            if leading_vehicle_position == None:
+                leading_vehicle_state = 0
+                number = ""
+                leading_vehicle_position = ""
+                leading_vehicle_speed = ""
+            elif leading_vehicle_position >= detection_range or leading_vehicle_position < 0:
                 leading_vehicle_state = 0
                 number = ""
                 leading_vehicle_position = ""
@@ -2066,6 +2071,8 @@ class SumoSim:
                 continue
             
             leading_vehicle_position = self.set_vehicle_position(detection, detector_id, leading_vehicle_id, True)
+            if leading_vehicle_position == None:
+                continue
 
             # 先頭車両を更新
             if vehicle_position < leading_vehicle_position:
