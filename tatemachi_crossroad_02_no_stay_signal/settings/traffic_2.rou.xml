@@ -1,48 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-10-24 18:38:42 by Eclipse SUMO netedit Version 1.17.0
--->
-
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
-    <!-- VTypes -->
-    <vType id="bus" length="11.00" minGap="3.00" maxSpeed="11.00" vClass="bus" color="red" accel="3" decel="5.5" sigma="0"/>
-    <vType id="large" length="12.00" minGap="2.50" maxSpeed="14.00" vClass="truck" color="blue" accel="3" decel="6.5" sigma="0"/>
-    <vType id="normal" length="5.00" minGap="2.50" maxSpeed="14.00" vClass="passenger" accel="3" decel="6.5" sigma="0"/>
-    <!-- Vehicles, persons and containers (sorted by depart) -->
-    <flow id="B1" type="normal" begin="0.00" from="-B" to="TE" end="3600.00" probability="0.04"/>
-    <flow id="B2" type="bus" begin="0.00" from="-B" to="TE" end="3600.00" probability="0.00"/>
-    <flow id="B3" type="large" begin="0.00" from="-B" to="TE" end="3600.00" probability="0.00"/>
-    <flow id="B4" type="normal" begin="0.00" from="-B" to="TW" end="3600.00" probability="0.04"/>
-    <flow id="B5" type="bus" begin="0.00" from="-B" to="TW" end="3600.00" probability="0.00"/>
-    <flow id="B6" type="large" begin="0.00" from="-B" to="TW" end="3600.00" probability="0.00"/>
-    <flow id="B7" type="normal" begin="0.00" from="-B" to="E4" end="3600.00" probability="0.07"/>
-    <flow id="B8" type="bus" begin="0.00" from="-B" to="E4" end="3600.00" probability="0.00"/>
-    <flow id="B9" type="large" begin="0.00" from="-B" to="E4" end="3600.00" probability="0.00"/>
-    <flow id="E41" type="normal" begin="0.00" from="-E4" to="TE" end="3600.00" probability="0.04"/>
-    <flow id="E42" type="bus" begin="0.00" from="-E4" to="TE" end="3600.00" probability="0.00"/>
-    <flow id="E43" type="large" begin="0.00" from="-E4" to="TE" end="3600.00" probability="0.00"/>
-    <flow id="E44" type="normal" begin="0.00" from="-E4" to="TW" end="3600.00" probability="0.04"/>
-    <flow id="E45" type="bus" begin="0.00" from="-E4" to="TW" end="3600.00" probability="0.00"/>
-    <flow id="E46" type="large" begin="0.00" from="-E4" to="TW" end="3600.00" probability="0.00"/>
-    <flow id="E47" type="normal" begin="0.00" from="-E4" to="B" end="3600.00" probability="0.08"/>
-    <flow id="E48" type="bus" begin="0.00" from="-E4" to="B" end="3600.00" probability="0.00"/>
-    <flow id="E49" type="large" begin="0.00" from="-E4" to="B" end="3600.00" probability="0.00"/>
-    <flow id="TE1" type="normal" begin="0.00" from="-TE" to="TW" end="3600.00" probability="0.12"/>
-    <flow id="TE2" type="bus" begin="0.00" from="-TE" to="TW" end="3600.00" probability="0.00"/>
-    <flow id="TE3" type="large" begin="0.00" from="-TE" to="TW" end="3600.00" probability="0.01"/>
-    <flow id="TE4" type="normal" begin="0.00" from="-TE" to="B" end="3600.00" probability="0.04"/>
-    <flow id="TE5" type="bus" begin="0.00" from="-TE" to="B" end="3600.00" probability="0.00"/>
-    <flow id="TE6" type="large" begin="0.00" from="-TE" to="B" end="3600.00" probability="0.00"/>
-    <flow id="TE7" type="normal" begin="0.00" from="-TE" to="E4" end="3600.00" probability="0.04"/>
-    <flow id="TE8" type="bus" begin="0.00" from="-TE" to="E4" end="3600.00" probability="0.00"/>
-    <flow id="TE9" type="large" begin="0.00" from="-TE" to="E4" end="3600.00" probability="0.00"/>
-    <flow id="TW1" type="normal" begin="0.00" from="-TW" to="TE" end="3600.00" probability="0.20"/>
-    <flow id="TW2" type="bus" begin="0.00" from="-TW" to="TE" end="3600.00" probability="0.00"/>
-    <flow id="TW3" type="large" begin="0.00" from="-TW" to="TE" end="3600.00" probability="0.01"/>
-    <flow id="TW4" type="normal" begin="0.00" from="-TW" to="B" end="3600.00" probability="0.04"/>
-    <flow id="TW5" type="bus" begin="0.00" from="-TW" to="B" end="3600.00" probability="0.00"/>
-    <flow id="TW6" type="large" begin="0.00" from="-TW" to="B" end="3600.00" probability="0.02"/>
-    <flow id="TW7" type="normal" begin="0.00" from="-TW" to="E4" end="3600.00" probability="0.04"/>
-    <flow id="TW8" type="bus" begin="0.00" from="-TW" to="E4" end="3600.00" probability="0.01"/>
-    <flow id="TW9" type="large" begin="0.00" from="-TW" to="E4" end="3600.00" probability="0.02"/>
+    <vType id="normal" accel="3" decel="6.5" sigma="0" length="5" minGap="2.5" vClass="passenger" maxSpeed="14"/>
+    <vType id="bus" accel="3" decel="5.5" sigma="0" length="11" minGap="3" vClass="bus" maxSpeed="11" color="1,0,0"/> <!--赤色-->
+    <vType id="large" accel="3" decel="6.5" sigma="0" length="12" minGap="2.5" vClass="truck" maxSpeed="14" color="0,0,1"/> <!--青色-->
+    
+    <flow id="TE1" type="normal" from="-TE" to="TW" begin="0" end="3600" probability="0.12"/>
+    <flow id="TE2" type="bus" from="-TE" to="TW" begin="0" end="3600" probability="0.0032"/>
+    <flow id="TE3" type="large" from="-TE" to="TW" begin="0" end="3600" probability="0.01"/>
+
+    <flow id="TE4" type="normal" from="-TE" to="B" begin="0" end="3600" probability="0.04"/>
+    <flow id="TE5" type="bus" from="-TE" to="B" begin="0" end="3600" probability="0.001"/>
+    <flow id="TE6" type="large" from="-TE" to="B" begin="0" end="3600" probability="0.0032"/>
+
+    <flow id="TE7" type="normal" from="-TE" to="E4" begin="0" end="3600" probability="0.04"/>
+    <flow id="TE8" type="bus" from="-TE" to="E4" begin="0" end="3600" probability="0.001"/>
+    <flow id="TE9" type="large" from="-TE" to="E4" begin="0" end="3600" probability="0.0032"/>
+
+    <flow id="TW1" type="normal" from="-TW" to="TE" begin="0" end="3600" probability="0.2"/>
+    <flow id="TW2" type="bus" from="-TW" to="TE" begin="0" end="3600" probability="0.004"/>
+    <flow id="TW3" type="large" from="-TW" to="TE" begin="0" end="3600" probability="0.01"/>
+
+    <flow id="TW4" type="normal" from="-TW" to="B" begin="0" end="3600" probability="0.04"/>
+    <flow id="TW5" type="bus" from="-TW" to="B" begin="0" end="3600" probability="0.001"/>
+    <flow id="TW6" type="large" from="-TW" to="B" begin="0" end="3600" probability="0.02"/>
+
+    <flow id="TW7" type="normal" from="-TW" to="E4" begin="0" end="3600" probability="0.04"/>
+    <flow id="TW8" type="bus" from="-TW" to="E4" begin="0" end="3600" probability="0.01"/>
+    <flow id="TW9" type="large" from="-TW" to="E4" begin="0" end="3600" probability="0.02"/>
+
+    <flow id="B1" type="normal" from="-B" to="TE" begin="0" end="3600" probability="0.035"/>
+    <flow id="B2" type="bus" from="-B" to="TE" begin="0" end="3600" probability="0.001"/>
+    <flow id="B3" type="large" from="-B" to="TE" begin="0" end="3600" probability="0.001"/>
+
+    <flow id="B4" type="normal" from="-B" to="TW" begin="0" end="3600" probability="0.035"/>
+    <flow id="B5" type="bus" from="-B" to="TW" begin="0" end="3600" probability="0.001"/>
+    <flow id="B6" type="large" from="-B" to="TW" begin="0" end="3600" probability="0.001"/>
+    
+    <flow id="B7" type="normal" from="-B" to="E4" begin="0" end="3600" probability="0.07"/>
+    <flow id="B8" type="bus" from="-B" to="E4" begin="0" end="3600" probability="0.002"/>
+    <flow id="B9" type="large" from="-B" to="E4" begin="0" end="3600" probability="0.002"/>
+    
+    <flow id="E41" type="normal" from="-E4" to="TE" begin="0" end="3600" probability="0.035"/>
+    <flow id="E42" type="bus" from="-E4" to="TE" begin="0" end="3600" probability="0.001"/>
+    <flow id="E43" type="large" from="-E4" to="TE" begin="0" end="3600" probability="0.001"/>
+
+    <flow id="E44" type="normal" from="-E4" to="TW" begin="0" end="3600" probability="0.035"/>
+    <flow id="E45" type="bus" from="-E4" to="TW" begin="0" end="3600" probability="0.001"/>
+    <flow id="E46" type="large" from="-E4" to="TW" begin="0" end="3600" probability="0.001"/>
+    
+    <flow id="E47" type="normal" from="-E4" to="B" begin="0" end="3600" probability="0.08"/>
+    <flow id="E48" type="bus" from="-E4" to="B" begin="0" end="3600" probability="0.002"/>
+    <flow id="E49" type="large" from="-E4" to="B" begin="0" end="3600" probability="0.002"/>
+    
 </routes>
