@@ -13,6 +13,4 @@
     <laneAreaDetector id="RO" lanes="-E1_0 -E0_0" friendlyPos="false" file="Tjiro.out.xml"/>  <!--規制車線(左)出口側-->
     <laneAreaDetector id="CR" lanes="-E2_0" friendlyPos="false" file="Tjiro.out.xml"/>    <!--ストレート車線(右)出口側-->
 
-    <parkingArea id="St_parking" lane="E0_0" startPos/>
-    
 </additional>
