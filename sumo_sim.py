@@ -336,9 +336,17 @@ class SumoSim:
 
         while traci.simulation.getTime() <= self.sim_time:
             traci.simulationStep()
+
             # 全車両の検出フラグやナンバー割り当て
             self.set_vehicle_info()
             
+            # マップ内から消えた車両IDの情報をnumber_dictから消去
+            allVehicleIDs = traci.vehicle.getIDList()
+            for vehicleId in self.vehicle_info:
+                if vehicleId not in allVehicleIDs:
+                    self.vehicle_info.pop(str(vehicleId)) 
+                break
+
             # シミュレーション時間の取得
             t_now = traci.simulation.getTime()
             # t_old = datetime.datetime.now()
@@ -596,13 +604,6 @@ class SumoSim:
             self.waiting_time_history()
             # print("----------衝突検知----------")
             self.collision_judge()
-
-            # マップ内から消えた車両IDの情報をnumber_dictから消去
-            allVehicleIDs = traci.vehicle.getIDList()
-            for vehicleId in self.vehicle_info:
-                if vehicleId not in allVehicleIDs:
-                    self.vehicle_info.pop(str(vehicleId)) 
-                break
 
             step += 1
             count +=1
@@ -1982,8 +1983,12 @@ class SumoSim:
 
         vehicle_ids = [] # 検出器上の車両リスト
         detection_lane_ids = list(traci.lanearea.getLaneIDs(detector_id)) # 検出範囲内すべてのレーンID
+        allVehicleIDs = traci.vehicle.getIDList()
 
         for key, value in self.vehicle_info.items():
+            if key not in allVehicleIDs:
+                # self.vehicle_info.pop(str(key)) 
+                continue
             # 車両のレーンIDと検出器のレーンIDが一致していればリストに車両IDを格納
             if value["LastLaneID"] in detection_lane_ids:
                 vehicle_ids.append(key)
@@ -2015,8 +2020,8 @@ class SumoSim:
     # def traffic_state_convert(color):
         
 
-    # 誘導状態更新
-    def set_traffic_state(self, lane_type, traffic_state):
+    # 誘導状態更新判断
+    def traffic_state_judge(self, lane_type, traffic_state):
         # ストレート、規制、枝道のどれか判定
         if lane_type == "0":
             lane = "straight"
@@ -2037,10 +2042,41 @@ class SumoSim:
 
         # 誘導状態が切り替わっているか判定
         if color_state != traffic_state_str:
+            # self.tls_state_list[lane]["state"] = traffic_state_str
+            return True
             # SUMO上の工事帯信号を変更
-            traci.trafficlight.setRedYellowGreenState(self.tls_state_list[lane]["id"], self.tls_state_list[lane][traffic_state_str])
-            self.tls_state_list[lane]["state"] = traffic_state_str
+            # traci.trafficlight.setRedYellowGreenState(self.tls_state_list[lane]["id"], self.tls_state_list[lane][traffic_state_str])
+            # if system:
+            #     self.tls_state_list[lane]["state"] = traffic_state_str
 
+            # 誘導信号変化履歴書き込み
+            # self.traffic_guide_change_history()
+        
+        return False
+
+    # 誘導状態更新判断
+    def set_traffic_state(self, lane_type, traffic_state, system=1):
+        # ストレート、規制、枝道のどれか判定
+        if lane_type == "0":
+            lane = "straight"
+        if lane_type == "1":
+            lane = "regulation"
+        if lane_type >= "2":
+            lane = "node" + str(int(lane_type) - 1)
+            # traffic_state = traci.trafficlight.getPhaseName(self.straight_traffic_guide_id)
+
+        # 誘導状態の情報をセット
+        if traffic_state == "0" or traffic_state == "2":
+            traffic_state_str = "red"
+        if traffic_state == "1":
+            traffic_state_str = "green"
+        if traffic_state == "3":
+            traffic_state_str = "yellow"
+
+        # SUMO上の工事帯信号を変更
+        traci.trafficlight.setRedYellowGreenState(self.tls_state_list[lane]["id"], self.tls_state_list[lane][traffic_state_str])
+        if system:
+            self.tls_state_list[lane]["state"] = traffic_state_str
             # 誘導信号変化履歴書き込み
             self.traffic_guide_change_history()
         
@@ -2082,9 +2118,16 @@ class SumoSim:
         return
 
     # 誘導状態更新
-    def lane_state_update(self, value_list):
+    def lane_state_update(self, value_list, system=1):
+        change_traffic_state = False
         for value in value_list:
-            self.set_traffic_state(value["LaneKind"], value["SystemState"])
+            if self.traffic_state_judge(value["LaneKind"], value["SystemState"]):
+                change_traffic_state = True
+                break
+        
+        if change_traffic_state or not system:
+            for value in value_list:
+                self.set_traffic_state(value["LaneKind"], value["SystemState"], system)
         
         return
 
@@ -2767,6 +2810,10 @@ class SumoSim:
             # システム判断状態更新要求を受信した際の処理
             self.lane_state_update(values)
             self.check_collision_caution(values)
+
+        if command_id == "traci_tls_change":
+            # 工事帯信号変更コマンド受信
+            self.lane_state_update(values, 0)
 
         res = make_response(result)
         return res
