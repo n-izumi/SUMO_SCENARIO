@@ -1653,13 +1653,14 @@ class SumoSim:
     def collision_caution_release_operation(self, nodeID):
         command = {}     # 送信データの雛形
         value = {}
-        # valuelist = []
+        valuelist = []
         timeStamp = self.get_time()
         command['CommandID'] = "0x00010700"
         command['EventID'] = "_".join([nodeID, str(timeStamp)])
         command['TimeStamp'] = str(timeStamp)
         value['Operation'] = "0"
-        command['Value'] = value
+        valuelist.append(value)
+        command['Value'] = valuelist
 
         return command
         
