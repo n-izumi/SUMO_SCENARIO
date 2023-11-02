@@ -39,6 +39,8 @@ class SumoSim:
     START_GUIDE_FILE = "/home/traffic/trafficsimulator/GuideCommand/start_guide"
     sim_time = 3600
     run_flg = True
+    lock = threading.Lock()
+    is_traci_start = False
 
     def __init__(self):
         # 引数読み込み
@@ -70,6 +72,7 @@ class SumoSim:
         optParser.add_option("-v", "--verbose", action="store_true",
                             default=False, help="tell me what you are doing")
         optParser.add_option("--disable-sensor-file", default="", help="disable sensor file path")
+        optParser.add_option("--delay-event-file", default="", help="delay event file path")
         # remaining command line options are treated as rsync args
         options, args = optParser.parse_args()
         self.set_log_config()
@@ -205,6 +208,13 @@ class SumoSim:
         else:
             self.use_disable_sensor_file = False
 
+        if os.path.isfile(options.delay_event_file):
+            self.use_delay_event_file = True
+            self.df_delay_data = pd.DataFrame({"send_time":[], "send_data":[]})
+            self.df_delay_event = pd.read_csv(options.delay_event_file, comment='#', skipinitialspace=True)
+        else:
+            self.use_delay_event_file = False
+
         self.sim_speed = 1.0
         if options.double_speed:
             self.sim_speed = 2.0
@@ -225,6 +235,11 @@ class SumoSim:
             thread_recv = threading.Thread(target=self.recv, daemon=True)
             thread_sim.start()
             thread_recv.start()
+
+            if self.use_delay_event_file:
+                thread_delay_event = threading.Thread(target=self.delay_send)
+                thread_delay_event.start()
+
             # self.sumo_thread = self.executor.submit(self.sumo_run, sumoBinary, step_length, options.seed)
             # self.recv_thread = self.executor.submit(self.recv)
         except KeyboardInterrupt:
@@ -262,6 +277,7 @@ class SumoSim:
             sumo_option.append(self.auto_start)
 
         traci.start(sumo_option)
+        self.is_traci_start = True
         self.run()
         traci.close()
         # os.kill(os.getpid(), 9)
@@ -2740,9 +2756,46 @@ class SumoSim:
         # print("test")
 
     # HTTP送信
-    def send(self, js):
+    def send(self, js, delay_flg=True):
         if js == "None":
             return
+
+        if self.use_delay_event_file and delay_flg:
+            send_json = json.loads(js)
+            # 検出イベントの遅延判定
+            if send_json["CommandID"].startswith("0xF"):
+                # コマンドIDを遅延設定ファイルのセンサーIDに変換
+                sensor_id = send_json["CommandID"][5] + send_json["CommandID"][7]
+                node_no = int(send_json["EventID"][6:8])
+                now_time = traci.simulation.getCurrentTime()
+
+                delay_info = self.df_delay_event.query(f"NodeNo=={node_no} and (SensorID == 0 or SensorID == {sensor_id}) and Begin <= {now_time} and End >= {now_time}")
+                if len(delay_info):
+                    # 設定された遅延発生確率で遅延を発生させる
+                    delay_random_num = random.randint(1, 100)
+                    delay_probability = delay_info["Probability"][0]
+
+                    # 対象車線、コマンドが遅延期間内の場合、遅延データに追加
+                    if delay_random_num <= delay_probability:
+                        # 現在から何ミリ秒後に送信するのかをランダムで設定するかどうか
+                        delay_random_flg = delay_info["RandomFlg"][0]
+                        
+                        if delay_random_flg:
+                            # ランダムで遅延ミリ秒数を設定する場合は、現時刻にDelayTime~DelayTimeMaxの間のランダムな整数を加算した時刻に送信
+                            send_time = now_time + random.randint(delay_info["DelayTime"][0], delay_info["DelayTimeMax"][0])
+                            print("*********************************")
+                            print(f"---------------------send time: {send_time - now_time} ---------------------")
+                            print("*********************************")
+                        else:
+                            # 固定で遅延ミリ秒数を設定する場合は、現時刻にDelayTimeを加算した時刻に送信
+                            send_time = now_time + delay_info["DelayTime"][0]
+
+                        df_new_delay_data = pd.DataFrame({"send_time":[send_time], "send_data":[js]})
+                        with self.lock:
+                            self.df_delay_data = pd.concat([self.df_delay_data, df_new_delay_data])
+
+                        return
+
         headers = {'Content-Type': 'application/json',}
         req = urllib.request.Request(self.url,js.encode(),headers)
         try:
@@ -2753,6 +2806,21 @@ class SumoSim:
             self.sumo_log.info("エラー：設定されているURLへの接続に失敗しました。")
         except socket.timeout:
             self.sumo_log.info("エラー：コマンド送信中にタイムアウトしました。")
+
+    # 定期的に遅延データを監視して送信
+    def delay_send(self):
+        while True:
+            if self.is_traci_start:
+                now_time = traci.simulation.getCurrentTime()
+                query = f"send_time<={now_time}"
+                for index, row in self.df_delay_data.query(query).iterrows():
+                    self.send(row.send_data, False)
+
+                # 送信済データは遅延データから削除
+                with self.lock:
+                    self.df_delay_data = self.df_delay_data.query("~(" + query + ")")
+
+            time.sleep(0.2)
 
     # 
     def api_run(self):
