@@ -828,7 +828,7 @@ class SumoSim:
                     if leading_vehicle_position == None:
                         leading_vehicle_position = vehicle_position
                     last_vehicle_position = vehicle_position + traci.vehicle.getLength(vehicle)
-                    stopTime = traci.vehicle.getWaitingTime(vehicle)
+                    stopTime = self.get_vehicle_stop_time(vehicle)
                     vehicleTime.append(str(stopTime))
             
             if leading_vehicle_position != None and last_vehicle_position != None:
@@ -897,7 +897,7 @@ class SumoSim:
                 if leading_vehicle_position == None:
                     leading_vehicle_position = vehicle_position
                 last_vehicle_position = vehicle_position + traci.vehicle.getLength(vehicle)
-                stopTime = traci.vehicle.getWaitingTime(vehicle)
+                stopTime = self.get_vehicle_stop_time(vehicle)
                 vehicleTime.append(str(stopTime))
                 #print(stopTime)
             
@@ -969,7 +969,7 @@ class SumoSim:
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[0]
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -1004,7 +1004,7 @@ class SumoSim:
 
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -1085,7 +1085,7 @@ class SumoSim:
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[1]
 
             vehicleState = 0
-            stopTime = str(traci.vehicle.getWaitingTime(id))
+            stopTime = str(self.get_vehicle_stop_time(id))
             vehicleType = self.vehicle_info[str(id)]["VehicleType"]
             number = self.vehicle_info[str(id)]["OutputNumber"]
             topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1158,7 +1158,7 @@ class SumoSim:
             vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[1]
 
             vehicleState = 1
-            stopTime = str(traci.vehicle.getWaitingTime(id))
+            stopTime = str(self.get_vehicle_stop_time(id))
             vehicleType = self.vehicle_info[str(id)]["VehicleType"]
             number = self.vehicle_info[str(id)]["OutputNumber"]
             topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1279,7 +1279,7 @@ class SumoSim:
 
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -1324,7 +1324,7 @@ class SumoSim:
 
                 value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
                 value['VehicleState'] = str(vehicleState)
-                value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+                value['StopTime'] = str(self.get_vehicle_stop_time(id))
                 value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
                 value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
                 value['ImageSize'] = self.set_image_size()
@@ -1411,7 +1411,7 @@ class SumoSim:
 
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -1456,7 +1456,7 @@ class SumoSim:
 
                 value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
                 value['VehicleState'] = str(vehicleState)
-                value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+                value['StopTime'] = str(self.get_vehicle_stop_time(id))
                 value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
                 value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
                 value['ImageSize'] = self.set_image_size()
@@ -1984,12 +1984,14 @@ class SumoSim:
             # 駐車車両ありシナリオの場合
             if self.flag_parking_vehicle == True:
                 # 車両がいずれかのレーンにいる場合レーンIDを格納、駐車車両ではないと判断
-                if traci.vehicle.getLaneID(id) != "":
-                    self.vehicle_info[str(id)]["LastLaneID"] = traci.vehicle.getLaneID(id)
+                if not traci.vehicle.isStoppedParking(id):
+                    self.vehicle_info[str(id)]["LastLaneID"] =  traci.vehicle.getLaneID(id)
                     self.vehicle_info[str(id)]["FlagParking"] = "False"
+                    self.vehicle_info[str(id)]["StopTime"] = 0
                 # 車両がどのレーンにもいない場合、駐車車両と判断
                 else:
                     self.vehicle_info[str(id)]["FlagParking"] = "True"
+                    self.vehicle_info[str(id)]["StopTime"] = self.vehicle_info[str(id)]["StopTime"] + 0.2
 
             
     # 検出器上の車両取得
@@ -2012,6 +2014,18 @@ class SumoSim:
 
         return vehicle_ids
         # 10/27 和泉修正(駐車車両処理)
+
+    # 停止時間取得
+    def get_vehicle_stop_time(self, vehicle_id):
+        stop_time = 0
+        # 駐車車両の場合、駐車車両用の停止時間をセット
+        if traci.vehicle.isStoppedParking(vehicle_id):
+            stop_time = self.vehicle_info[str(vehicle_id)]["StopTime"]
+        else:
+            stop_time = traci.vehicle.getWaitingTime(vehicle_id)
+        # print(math.floor(stop_time))
+
+        return math.floor(stop_time)
 
     # データ送信時の画像サイズ成形
     def set_image_size(self):
