@@ -740,6 +740,7 @@ class SumoSim:
         if abs(distance) < 2.0:
             print("衝突を検知しました")
             self.sumo_log.info("-----衝突を検知しました-----")
+            traci.gui.setStaticInfo("collisionTime", "")
             self.collision_history_output(s_vehicle_id, r_vehicle_id)
             return True
 
@@ -2224,10 +2225,11 @@ class SumoSim:
 
     # タイムアウト発生処理
     def construction_passing_state_update(self, value):
-        if value["TimeOutFlg"] == "1":
+        if value["TimeOutFlg"] == "1" and not self.time_out_flag:
             self.time_out_flag = True
             self.time_out_side = value["TimeOutSide"]
             self.sumo_log.info("-----------------------------タイムアウト発生-----------------------------")
+            traci.gui.setStaticInfo("timeOutTime", "")
             # self.sumo_log.info(result)
 
         return
@@ -2241,6 +2243,8 @@ class SumoSim:
             if int(value["CollisionCaution"]) == 1:
                 self.sumo_log.info("-----------------------------緊急停止発生-----------------------------")
                 self.collision_caution = True
+                # traci.gui.setStaticInfo("collisionTime", "")
+                break
 
         return
 

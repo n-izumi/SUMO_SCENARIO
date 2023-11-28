@@ -6,7 +6,8 @@
         "DistanceToSignal": "0",
         "StopLineAndZoneBranchCnt": "0",
         "BaseImagePath": "/var/www/html/admin/Images/demo_main.jpg",
-        "KanriSendFlg": "1"
+        "KanriSendFlg": "1",
+        "LaneInfoUseFlg": "0"
     },
     {
         "LaneKind": "1",
@@ -15,6 +16,7 @@
         "DistanceToSignal": "0",
         "StopLineAndZoneBranchCnt": "0",
         "BaseImagePath": "/var/www/html/admin/Images/demo_sub.jpg",
-        "KanriSendFlg": "1"
+        "KanriSendFlg": "1",
+        "LaneInfoUseFlg": "1"
     }
 ]
