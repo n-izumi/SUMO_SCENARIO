@@ -151,15 +151,20 @@ class SumoSim:
         # 滞留なし車線フラグ
         self.straight_lane_info_use_flg = "1"
         self.regulation_lane_info_use_flg = "1"
+        self.person_guide_lane = ""
         for lane_setting in self.lane_settings:
             if "LaneKind" not in lane_setting or "LaneInfoUseFlg" not in lane_setting:
                 continue
             # ストレート側
             if lane_setting["LaneKind"] == "0":
                 self.straight_lane_info_use_flg = lane_setting["LaneInfoUseFlg"]
+                if self.straight_lane_info_use_flg == "0":
+                    self.person_guide_lane = "straight"
             # 規制側
             if lane_setting["LaneKind"] == "1":
                 self.regulation_lane_info_use_flg = lane_setting["LaneInfoUseFlg"]
+                if self.regulation_lane_info_use_flg == "0":
+                    self.person_guide_lane = "regulation"
 
         self.auto_start = ""
         if options.auto_start:
@@ -382,6 +387,9 @@ class SumoSim:
             # print(self.get_sim_time())
 
             t_now_ms = traci.simulation.getCurrentTime()
+
+            # 誘導隊員との連携現場の処理
+            self.auto_traffic_state_judge()
 
             # 各コマンド処理呼び出し
             
@@ -745,6 +753,42 @@ class SumoSim:
             return True
 
         return False
+    
+    # 誘導隊員との連携現場の処理
+    def auto_traffic_state_judge(self):
+        if self.person_guide_lane == "":
+            return
+        
+        traffic_guide_state = "red"
+        person_guide_state = "red"
+
+        if self.person_guide_lane == "straight":
+            lane_type = "0"
+        elif self.person_guide_lane == "regulation":
+            lane_type = "1"
+        for key, value in self.tls_state_list.items():
+            if key == self.person_guide_lane:
+                # 誘導隊員の制御車線の誘導指示を取得
+                person_guide_state = value["system_state"]
+            elif value["system_state"] == "green":
+                # 業務プロセスの制御車線の誘導指示を取得
+                traffic_guide_state = value["system_state"]
+
+        print(traffic_guide_state)
+        print(person_guide_state)
+
+        # 制御車線の誘導指示によって処理を変える
+        # 業務プロセス制御車線が「すすめ」 かつ 誘導隊員制御車線が「すすめ」 の場合
+        if traffic_guide_state == "green" and person_guide_state == "green":
+            # 誘導隊員制御車線を「とまれ」
+            self.set_traffic_state(lane_type, "0")
+        # 業務プロセス制御車線が「とまれ」かつ 誘導隊員制御車線が「とまれ」か判定
+        elif traffic_guide_state == "red" and person_guide_state == "red":
+            # True かつ 工事帯内の車両が0台の場合
+            construction_vehicle_number = self.get_inside_car_number()
+            if construction_vehicle_number == 0:
+                # 誘導隊員制御車線を「すすめ」
+                self.set_traffic_state(lane_type, "1")
 
     # 信号機認識
     def traffic_light_recognition(self, tlsID, nodeID):
@@ -2104,6 +2148,7 @@ class SumoSim:
         tls_state_list["yellow"] = tls_state.replace('r', 'y')
         tls_state_list["green"] = tls_state.replace('r', 'G')
         tls_state_list["state"] = "red"
+        tls_state_list["system_state"] = "red"
 
         return tls_state_list
 
@@ -2120,6 +2165,8 @@ class SumoSim:
         if lane_type >= "2":
             lane = "node" + str(int(lane_type) - 1)
             # traffic_state = traci.trafficlight.getPhaseName(self.straight_traffic_guide_id)
+        if lane == self.person_guide_lane:
+            return False
         color_state = self.tls_state_list[lane]["state"]
 
         # 誘導状態の情報をセット
@@ -2165,6 +2212,7 @@ class SumoSim:
 
         # SUMO上の工事帯信号を変更
         traci.trafficlight.setRedYellowGreenState(self.tls_state_list[lane]["id"], self.tls_state_list[lane][traffic_state_str])
+        self.tls_state_list[lane]["system_state"] = traffic_state_str
         if system:
             self.tls_state_list[lane]["state"] = traffic_state_str
             # 誘導信号変化履歴書き込み
