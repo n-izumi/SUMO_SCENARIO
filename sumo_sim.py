@@ -96,6 +96,7 @@ class SumoSim:
         self.lane_settings = self.setting_read(self.lane_settings_name)
         self.public_settings = self.setting_read(self.public_settings_name)
         self.signal_settings = self.setting_read(self.signal_settings_name)
+        self.set_settings_default()
         self.straight_green_time = ""
         self.straight_yellow_time = ""
         self.straight_red_time = ""
@@ -148,6 +149,24 @@ class SumoSim:
             if self.settings["FLAG_PARKING_VEHILCE"] == "TRUE":
                 self.flag_parking_vehicle = True
 
+        # 滞留なし車線フラグ
+        self.straight_lane_info_use_flg = "1"
+        self.regulation_lane_info_use_flg = "1"
+        self.person_guide_lane = ""
+        for lane_setting in self.lane_settings:
+            if "LaneKind" not in lane_setting or "LaneInfoUseFlg" not in lane_setting:
+                continue
+            # ストレート側
+            if lane_setting["LaneKind"] == "0":
+                self.straight_lane_info_use_flg = lane_setting["LaneInfoUseFlg"]
+                if self.straight_lane_info_use_flg == "0":
+                    self.person_guide_lane = "straight"
+            # 規制側
+            if lane_setting["LaneKind"] == "1":
+                self.regulation_lane_info_use_flg = lane_setting["LaneInfoUseFlg"]
+                if self.regulation_lane_info_use_flg == "0":
+                    self.person_guide_lane = "regulation"
+
         self.auto_start = ""
         if options.auto_start:
             self.auto_start = "--start"
@@ -185,7 +204,10 @@ class SumoSim:
         # self.sumoCom = sumo_com.SumoCom(self.settings["HTTP_SERVER_URL"], 30, self.settings["HTTP_SERVER_HOST"], self.settings["HTTP_SERVER_PORT"])
         
         self.time_out_flag = False
+        self.time_out_timestamp = None
+        self.time_out_sim_timestamp = None
         self.time_out_history_flag = False
+        self.time_out_value = "0"
         self.time_out_side = 0
         self.construction_vehicle_time = None
         self.construction_vehicle = 0
@@ -327,6 +349,10 @@ class SumoSim:
             # 自動開始モードの場合、交通誘導開始してからSUMOを起動
             while True:
                 if os.path.isfile(self.START_GUIDE_FILE):
+                    # 誘導開始直後に緊急停止状態になるので解除
+                    time.sleep(5)
+                    result = self.collision_caution_release_operation("Tablet01")
+                    self.send(self.set_command(result))
                     break
 
                 time.sleep(1)
@@ -369,6 +395,9 @@ class SumoSim:
             # print(self.get_sim_time())
 
             t_now_ms = traci.simulation.getCurrentTime()
+
+            # 誘導隊員との連携現場の処理
+            self.auto_traffic_state_judge()
 
             # 各コマンド処理呼び出し
             
@@ -426,107 +455,135 @@ class SumoSim:
             
             # メインPC(ストレート側処理)
             self.sumo_log.info("-----------------------------メインPC-----------------------------")
+
+            # 滞留なしかどうか判定
+            if self.straight_lane_info_use_flg == "0":
+                # 滞留なしの場合各イベントの通知をしない
+                self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
             
-            # 車列検出（離脱
-            if self.settings["FLAG_SECESSION_VEHICLE_DETECTION"] == "TRUE":
-                f001_0300 = self.breakaway_vehicle_detection(self.settings["STRAIGHT_SECESSION_DETECTOR"], self.main_node_id)
-                if not self.is_disable_sensor(1, 13, t_now_ms):
-                    # print(f001_0300)
-                    self.sumo_log.info(f001_0300)
-                    self.send(self.set_command(f001_0300))
+            else:
+                # 車列検出（離脱
+                if self.settings["FLAG_SECESSION_VEHICLE_DETECTION"] == "TRUE":
+                    f001_0300 = self.breakaway_vehicle_detection(self.settings["STRAIGHT_SECESSION_DETECTOR"], self.main_node_id)
+                    if not self.is_disable_sensor(1, 13, t_now_ms):
+                        # print(f001_0300)
+                        self.sumo_log.info(f001_0300)
+                        self.send(self.set_command(f001_0300))
 
-            # 車列検出（接近
-            if self.settings["FLAG_APPROACH_VEHICLE_DETECTION"] == "TRUE":
-                f001_0400 = self.approaching_vehicle_detection(self.settings["STRAIGHT_APPROACH_DETECTOR"], self.main_node_id)
-                if not self.is_disable_sensor(1, 14, t_now_ms):
-                    # print(f001_0400)
-                    self.sumo_log.info(f001_0400)
-                    self.send(self.set_command(f001_0400))
+                # 車列検出（接近
+                if self.settings["FLAG_APPROACH_VEHICLE_DETECTION"] == "TRUE":
+                    f001_0400 = self.approaching_vehicle_detection(self.settings["STRAIGHT_APPROACH_DETECTOR"], self.main_node_id)
+                    if not self.is_disable_sensor(1, 14, t_now_ms):
+                        # print(f001_0400)
+                        self.sumo_log.info(f001_0400)
+                        self.send(self.set_command(f001_0400))
 
-            # ナンバープレート認識
-            if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
-                f001_0700 = self.license_plate_recognition(self.main_node_id)
-                if not self.is_disable_sensor(1, 17, t_now_ms):
-                    # print(f001_0700)
-                    self.sumo_log.info(f001_0700)
-                    self.send(self.set_command(f001_0700))
+                # ナンバープレート認識
+                if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
+                    f001_0700 = self.license_plate_recognition(self.main_node_id)
+                    if not self.is_disable_sensor(1, 17, t_now_ms):
+                        # print(f001_0700)
+                        self.sumo_log.info(f001_0700)
+                        self.send(self.set_command(f001_0700))
 
-            # 車両認識（渋滞カメラ
-            if self.settings["FLAG_VEHICLE_RECOGNITION_TJ"] == "TRUE":
-                f001_0800 = self.vehicle_recognition_TJ(self.main_node_id)
-                if not self.is_disable_sensor(1, 18, t_now_ms):
-                    # print(f001_0800)
-                    self.sumo_log.info(f001_0800)
-                    self.send(self.set_command(f001_0800))
+                # 車両認識（渋滞カメラ
+                if self.settings["FLAG_VEHICLE_RECOGNITION_TJ"] == "TRUE":
+                    f001_0800 = self.vehicle_recognition_TJ(self.main_node_id)
+                    if not self.is_disable_sensor(1, 18, t_now_ms):
+                        # print(f001_0800)
+                        self.sumo_log.info(f001_0800)
+                        self.send(self.set_command(f001_0800))
 
-            # 車両認識（ナンバープレート）
-            if self.settings["FLAG_VEHICLE_RECOGNITION_NP"] == "TRUE":
-                f001_0900 = self.vehicle_recognition_NP(self.main_node_id)
-                if not self.is_disable_sensor(1, 19, t_now_ms):
-                    # print(f001_0900)
-                    self.sumo_log.info(f001_0900)
-                    self.send(self.set_command(f001_0900))
+                # 車両認識（ナンバープレート）
+                if self.settings["FLAG_VEHICLE_RECOGNITION_NP"] == "TRUE":
+                    f001_0900 = self.vehicle_recognition_NP(self.main_node_id)
+                    if not self.is_disable_sensor(1, 19, t_now_ms):
+                        # print(f001_0900)
+                        self.sumo_log.info(f001_0900)
+                        self.send(self.set_command(f001_0900))
 
-            # 車速・距離検出
-            if self.settings["FLAG_SPEED_DISTANCE_RECOGNITION"] == "TRUE":
-                f002_0000 = self.speed_and_distance_recognition(self.settings["STRAIGHT_APPROACH_DETECTOR"], self.main_node_id)
-                if not self.is_disable_sensor(1, 20, t_now_ms):
-                    # print(f002_0000)
-                    self.sumo_log.info(f002_0000)
-                    self.send(self.set_command(f002_0000))
-                    #speed_and_distance_recognition(self.settings["STRAIGHT_SECESSION_DETECTOR"])
+                # 接近・離脱検出
+                if self.settings["FLAG_APPROACH_BREAKAWAY_DETECTION"] == "TRUE":
+                    f007_0000 = self.approach_breakaway_detection(self.main_node_id)
+                    # if not self.is_disable_sensor(1, 19, t_now_ms):
+                        # print(f007_0000)
+                    self.sumo_log.info(f007_0000)
+                    self.send(self.set_command(f007_0000))
+
+                # 車速・距離検出
+                if self.settings["FLAG_SPEED_DISTANCE_RECOGNITION"] == "TRUE":
+                    f002_0000 = self.speed_and_distance_recognition(self.settings["STRAIGHT_APPROACH_DETECTOR"], self.main_node_id)
+                    if not self.is_disable_sensor(1, 20, t_now_ms):
+                        # print(f002_0000)
+                        self.sumo_log.info(f002_0000)
+                        self.send(self.set_command(f002_0000))
+                        #speed_and_distance_recognition(self.settings["STRAIGHT_SECESSION_DETECTOR"])
 
             # サブPC(規制側処理)
             self.sumo_log.info("-----------------------------サブPC-----------------------------")
 
-            # 車列検出（離脱
-            if self.settings["FLAG_SECESSION_VEHICLE_DETECTION"] == "TRUE":
-                f001_0300 = self.breakaway_vehicle_detection(self.settings["REGULATION_SECESSION_DETECTOR"], self.sub_node_id)
-                if not self.is_disable_sensor(2, 13, t_now_ms):
-                    # print(f001_0300)
-                    self.sumo_log.info(f001_0300)
-                    self.send(self.set_command(f001_0300))
+            # 滞留なしかどうか判定
+            if self.regulation_lane_info_use_flg == "0":
+                # 滞留なしの場合各イベントの通知をしない
+                self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
+            
+            else:
+                # 車列検出（離脱
+                if self.settings["FLAG_SECESSION_VEHICLE_DETECTION"] == "TRUE":
+                    f001_0300 = self.breakaway_vehicle_detection(self.settings["REGULATION_SECESSION_DETECTOR"], self.sub_node_id)
+                    if not self.is_disable_sensor(2, 13, t_now_ms):
+                        # print(f001_0300)
+                        self.sumo_log.info(f001_0300)
+                        self.send(self.set_command(f001_0300))
 
-            # 車列検出（接近
-            if self.settings["FLAG_APPROACH_VEHICLE_DETECTION"] == "TRUE":
-                f001_0400 = self.approaching_vehicle_detection(self.settings["REGULATION_APPROACH_DETECTOR"], self.sub_node_id)
-                if not self.is_disable_sensor(2, 14, t_now_ms):
-                    # print(f001_0400)
-                    self.sumo_log.info(f001_0400)
-                    self.send(self.set_command(f001_0400))
+                # 車列検出（接近
+                if self.settings["FLAG_APPROACH_VEHICLE_DETECTION"] == "TRUE":
+                    f001_0400 = self.approaching_vehicle_detection(self.settings["REGULATION_APPROACH_DETECTOR"], self.sub_node_id)
+                    if not self.is_disable_sensor(2, 14, t_now_ms):
+                        # print(f001_0400)
+                        self.sumo_log.info(f001_0400)
+                        self.send(self.set_command(f001_0400))
 
-            # ナンバープレート認識
-            if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
-                f001_0700 = self.license_plate_recognition(self.sub_node_id)
-                if not self.is_disable_sensor(2, 17, t_now_ms):
-                    # print(f001_0700)
-                    self.sumo_log.info(f001_0700)
-                    self.send(self.set_command(f001_0700))
+                # ナンバープレート認識
+                if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
+                    f001_0700 = self.license_plate_recognition(self.sub_node_id)
+                    if not self.is_disable_sensor(2, 17, t_now_ms):
+                        # print(f001_0700)
+                        self.sumo_log.info(f001_0700)
+                        self.send(self.set_command(f001_0700))
 
-            # 車両認識（渋滞カメラ
-            if self.settings["FLAG_VEHICLE_RECOGNITION_TJ"] == "TRUE":
-                f001_0800 = self.vehicle_recognition_TJ(self.sub_node_id)
-                if not self.is_disable_sensor(2, 18, t_now_ms):
-                    # print(f001_0800)
-                    self.sumo_log.info(f001_0800)
-                    self.send(self.set_command(f001_0800))
+                # 車両認識（渋滞カメラ
+                if self.settings["FLAG_VEHICLE_RECOGNITION_TJ"] == "TRUE":
+                    f001_0800 = self.vehicle_recognition_TJ(self.sub_node_id)
+                    if not self.is_disable_sensor(2, 18, t_now_ms):
+                        # print(f001_0800)
+                        self.sumo_log.info(f001_0800)
+                        self.send(self.set_command(f001_0800))
 
-            # 車両認識（ナンバープレート）
-            if self.settings["FLAG_VEHICLE_RECOGNITION_NP"] == "TRUE":
-                f001_0900 = self.vehicle_recognition_NP(self.sub_node_id)
-                if not self.is_disable_sensor(2, 19, t_now_ms):
-                    # print(f001_0900)
-                    self.sumo_log.info(f001_0900)
-                    self.send(self.set_command(f001_0900))
+                # 車両認識（ナンバープレート）
+                if self.settings["FLAG_VEHICLE_RECOGNITION_NP"] == "TRUE":
+                    f001_0900 = self.vehicle_recognition_NP(self.sub_node_id)
+                    if not self.is_disable_sensor(2, 19, t_now_ms):
+                        # print(f001_0900)
+                        self.sumo_log.info(f001_0900)
+                        self.send(self.set_command(f001_0900))
 
-            # 車速・距離検出
-            if self.settings["FLAG_SPEED_DISTANCE_RECOGNITION"] == "TRUE":
-                f002_0000 = self.speed_and_distance_recognition(self.settings["REGULATION_APPROACH_DETECTOR"], self.sub_node_id)
-                if not self.is_disable_sensor(2, 20, t_now_ms):
-                    # print(f002_0000)
-                    self.sumo_log.info(f002_0000)
-                    self.send(self.set_command(f002_0000))
-                    #speed_and_distance_recognition(self.settings["STRAIGHT_SECESSION_DETECTOR"])
+                # 接近・離脱検出
+                if self.settings["FLAG_APPROACH_BREAKAWAY_DETECTION"] == "TRUE":
+                    f007_0000 = self.approach_breakaway_detection(self.sub_node_id)
+                    # if not self.is_disable_sensor(1, 19, t_now_ms):
+                        # print(f007_0000)
+                    self.sumo_log.info(f007_0000)
+                    self.send(self.set_command(f007_0000))
+
+                # 車速・距離検出
+                if self.settings["FLAG_SPEED_DISTANCE_RECOGNITION"] == "TRUE":
+                    f002_0000 = self.speed_and_distance_recognition(self.settings["REGULATION_APPROACH_DETECTOR"], self.sub_node_id)
+                    if not self.is_disable_sensor(2, 20, t_now_ms):
+                        # print(f002_0000)
+                        self.sumo_log.info(f002_0000)
+                        self.send(self.set_command(f002_0000))
+                        #speed_and_distance_recognition(self.settings["STRAIGHT_SECESSION_DETECTOR"])
 
             # 枝道処理
             self.sumo_log.info("-----------------------------枝道-----------------------------")
@@ -568,19 +625,35 @@ class SumoSim:
             self.sumo_log.info("-----------------------------工事帯進入・離脱検出-----------------------------")
             if self.settings["FLAG_PENETRATION_BREAKAWAY"] == "TRUE":
                 # if traci.inductionloop.getLastStepVehicleNumber("straightIn"):
-                f006_0000 = self.penetration_breakaway(self.main_node_id)
-                # print(f006_0000)   # 工事帯進入・離脱検出
-                if f006_0000:
-                    if not self.is_disable_sensor(1, 60, t_now_ms):
-                        self.sumo_log.info(f006_0000)   # 工事帯進入・離脱検出
-                        self.send(self.set_command(f006_0000))
+                self.sumo_log.info("-----------------------------ストレート側-----------------------------")
+                
+                # 滞留なしかどうか判定
+                if self.straight_lane_info_use_flg == "0":
+                    # 滞留なしの場合各イベントの通知をしない
+                    self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
+                
+                else:
+                    f006_0000 = self.penetration_breakaway(self.main_node_id)
+                    # print(f006_0000)   # 工事帯進入・離脱検出
+                    if f006_0000:
+                        if not self.is_disable_sensor(1, 60, t_now_ms):
+                            self.sumo_log.info(f006_0000)   # 工事帯進入・離脱検出
+                            self.send(self.set_command(f006_0000))
 
-                f006_0000 = self.penetration_breakaway(self.sub_node_id)
-                if f006_0000:
-                    if not self.is_disable_sensor(2, 60, t_now_ms):
-                        # print(f006_0000)   # 工事帯進入・離脱検出
-                        self.sumo_log.info(f006_0000)   # 工事帯進入・離脱検出
-                        self.send(self.set_command(f006_0000))
+                self.sumo_log.info("-----------------------------規制側-----------------------------")
+                
+                # 滞留なしかどうか判定
+                if self.regulation_lane_info_use_flg == "0":
+                    # 滞留なしの場合各イベントの通知をしない
+                    self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
+                
+                else:
+                    f006_0000 = self.penetration_breakaway(self.sub_node_id)
+                    if f006_0000:
+                        if not self.is_disable_sensor(2, 60, t_now_ms):
+                            # print(f006_0000)   # 工事帯進入・離脱検出
+                            self.sumo_log.info(f006_0000)   # 工事帯進入・離脱検出
+                            self.send(self.set_command(f006_0000))
 
 
             # １秒ごとに送信するロジック
@@ -589,25 +662,39 @@ class SumoSim:
                 if t_delta >= 1:
                     if self.settings["FLAG_VEHICLE_DETECTION_FRONT_SENSOR"] == "TRUE":
                         self.sumo_log.info("-----------------------------工事帯センサ前車両検出-----------------------------")
-                        f006_0100 = self.vehicle_detection_front_sensor(self.main_node_id)
-                        # print(f006_0100)   # 工事帯センサ前車両検出
-                        if not self.is_disable_sensor(1, 61, t_now_ms):
-                            self.sumo_log.info(f006_0100)   # 工事帯センサ前車両検出
-                            self.send(self.set_command(f006_0100))
+                        
+                        self.sumo_log.info("-----------------------------ストレート側-----------------------------")
+                        
+                        # 滞留なしかどうか判定
+                        if self.straight_lane_info_use_flg == "0":
+                            # 滞留なしの場合各イベントの通知をしない
+                            self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
+                        
+                        else:
+                            f006_0100 = self.vehicle_detection_front_sensor(self.main_node_id)
+                            # print(f006_0100)   # 工事帯センサ前車両検出
+                            if not self.is_disable_sensor(1, 61, t_now_ms):
+                                self.sumo_log.info(f006_0100)   # 工事帯センサ前車両検出
+                                self.send(self.set_command(f006_0100))
 
-                        f006_0100 = self.vehicle_detection_front_sensor(self.sub_node_id)
-                        # print(f006_0100)   # 工事帯センサ前車両検出
-                        if not self.is_disable_sensor(2, 61, t_now_ms):
-                            self.sumo_log.info(f006_0100)   # 工事帯センサ前車両検出
-                            self.send(self.set_command(f006_0100))
+                        self.sumo_log.info("-----------------------------規制側-----------------------------")
+                        
+                        # 滞留なしかどうか判定
+                        if self.regulation_lane_info_use_flg == "0":
+                            # 滞留なしの場合各イベントの通知をしない
+                            self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
+                        
+                        else:
+                            f006_0100 = self.vehicle_detection_front_sensor(self.sub_node_id)
+                            # print(f006_0100)   # 工事帯センサ前車両検出
+                            if not self.is_disable_sensor(2, 61, t_now_ms):
+                                self.sumo_log.info(f006_0100)   # 工事帯センサ前車両検出
+                                self.send(self.set_command(f006_0100))
                     t_old = t_now
 
             # タイムアウト処理
             self.time_out()
 
-            # タイムアウト発生履歴
-            # print("----------タイムアウト発生履歴----------")
-            self.time_out_history()
             # print("----------先頭車両接近・停止履歴----------")
             self.output_leading_vehicle_state_history()
             # print("----------滞留発生履歴----------")
@@ -682,10 +769,47 @@ class SumoSim:
         if abs(distance) < 2.0:
             print("衝突を検知しました")
             self.sumo_log.info("-----衝突を検知しました-----")
+            traci.gui.setStaticInfo("collisionTime", "")
             self.collision_history_output(s_vehicle_id, r_vehicle_id)
             return True
 
         return False
+    
+    # 誘導隊員との連携現場の処理
+    def auto_traffic_state_judge(self):
+        if self.person_guide_lane == "":
+            return
+        
+        traffic_guide_state = "red"
+        person_guide_state = "red"
+
+        if self.person_guide_lane == "straight":
+            lane_type = "0"
+        elif self.person_guide_lane == "regulation":
+            lane_type = "1"
+        for key, value in self.tls_state_list.items():
+            if key == self.person_guide_lane:
+                # 誘導隊員の制御車線の誘導指示を取得
+                person_guide_state = value["system_state"]
+            elif value["system_state"] == "green":
+                # 業務プロセスの制御車線の誘導指示を取得
+                traffic_guide_state = value["system_state"]
+
+        print(traffic_guide_state)
+        print(person_guide_state)
+
+        # 制御車線の誘導指示によって処理を変える
+        # 業務プロセス制御車線が「すすめ」 かつ 誘導隊員制御車線が「すすめ」 の場合
+        if traffic_guide_state == "green" and person_guide_state == "green":
+            # 誘導隊員制御車線を「とまれ」
+            self.set_traffic_state(lane_type, "0")
+        # 業務プロセス制御車線が「とまれ」かつ 誘導隊員制御車線が「とまれ」か判定
+        elif traffic_guide_state == "red" and person_guide_state == "red":
+            # True かつ 工事帯内の車両が0台の場合
+            construction_vehicle_number = self.get_inside_car_number()
+            if construction_vehicle_number == 0:
+                # 誘導隊員制御車線を「すすめ」
+                self.set_traffic_state(lane_type, "1")
 
     # 信号機認識
     def traffic_light_recognition(self, tlsID, nodeID):
@@ -816,19 +940,19 @@ class SumoSim:
                         continue
 
                     # 車両が検出範囲内に入っていない場合次に車両へ
-                    range_max = float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MAX"])
+                    detection_range_max = float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MAX"])
                     if nodeID == self.main_node_id and self.straight_detection_range != None:
-                        range_max = self.straight_detection_range
+                        detection_range_max = self.straight_detection_range
                     if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                        range_max = self.regulation_detection_range
-                    if vehicle_position < float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MIN"]) or vehicle_position > range_max:
+                        detection_range_max = self.regulation_detection_range
+                    if vehicle_position < float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MIN"]) or vehicle_position > detection_range_max:
                         continue
 
                     vehicle_count += 1
                     if leading_vehicle_position == None:
                         leading_vehicle_position = vehicle_position
                     last_vehicle_position = vehicle_position + traci.vehicle.getLength(vehicle)
-                    stopTime = traci.vehicle.getWaitingTime(vehicle)
+                    stopTime = self.get_vehicle_stop_time(vehicle)
                     vehicleTime.append(str(stopTime))
             
             if leading_vehicle_position != None and last_vehicle_position != None:
@@ -885,19 +1009,19 @@ class SumoSim:
                     continue
 
                 # 車両が検出範囲内に入っていない場合次に車両へ
-                range_max = float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MAX"])
+                detection_range_max = float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MAX"])
                 if nodeID == self.main_node_id and self.straight_detection_range != None:
-                    range_max = self.straight_detection_range
+                    detection_range_max = self.straight_detection_range
                 if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                    range_max = self.regulation_detection_range
-                if vehicle_position < float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MIN"]) or vehicle_position > range_max:
+                    detection_range_max = self.regulation_detection_range
+                if vehicle_position < float(self.settings["TRAFFIC_JAM_DETECTION_DISTANCE_MIN"]) or vehicle_position > detection_range_max:
                     continue
 
                 vehicle_count += 1
                 if leading_vehicle_position == None:
                     leading_vehicle_position = vehicle_position
                 last_vehicle_position = vehicle_position + traci.vehicle.getLength(vehicle)
-                stopTime = traci.vehicle.getWaitingTime(vehicle)
+                stopTime = self.get_vehicle_stop_time(vehicle)
                 vehicleTime.append(str(stopTime))
                 #print(stopTime)
             
@@ -969,7 +1093,7 @@ class SumoSim:
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[0]
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -989,8 +1113,8 @@ class SumoSim:
                 continue
 
             # 
-            if not self.detection_lane_judge(secession_detector_id, tls_id, id, False):
-                continue
+            # if not self.detection_lane_judge(secession_detector_id, tls_id, id, False):
+                # continue
             
             # 車両位置取得
             vehicle_position = self.set_vehicle_position(False, secession_detector_id, id, True)
@@ -1004,7 +1128,7 @@ class SumoSim:
 
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -1016,6 +1140,145 @@ class SumoSim:
         # print("Command: " + str(command))
         return command
 
+    # 新規接近・離脱検出コマンド
+    def approach_breakaway_detection(self, nodeID):
+        command = {}     # 送信データの雛形
+        # valuelist = []
+        timeStamp = self.get_time()
+        approach_flag = "0"
+        breakaway_flag = "0"
+        unknown_flag = "0"
+        # 設定の検出範囲をセット
+        detection_range_min = float(self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MIN"])
+        detection_range_max = float(self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MAX"])
+
+        # 信号ありの車線の場合、信号までの距離を範囲とする
+        if nodeID == self.main_node_id and self.straight_detection_range != None:
+            detection_range_max = min([self.straight_detection_range, detection_range_max])
+        elif nodeID == self.sub_node_id and self.regulation_detection_range != None:
+            detection_range_max = min([self.regulation_detection_range, detection_range_max])
+
+        # 該当車線の検出器IDを取得
+        if nodeID == self.main_node_id:
+            approach_detector_id = self.settings["STRAIGHT_APPROACH_DETECTOR"]
+            secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
+        elif nodeID == self.sub_node_id:
+            approach_detector_id = self.settings["REGULATION_APPROACH_DETECTOR"]
+            secession_detector_id = self.settings["REGULATION_SECESSION_DETECTOR"].split(",")
+        else:
+            branch_data = self.get_branch_data(nodeID)
+            # print(branch_data)
+            approach_detector_id = branch_data["approach"]["id"][0]
+            secession_detector_id = branch_data["secession"]["id"]
+            detection_range_min = 0
+
+        command['CommandID'] = "0xF0070000"
+        command['EventID'] = "_".join([nodeID, str(timeStamp)])
+        command['TimeStamp'] = str(timeStamp)
+
+        # 接近車両
+        # 10/27 和泉修正(駐車車両処理)
+        vehicleIDs = self.get_vehicle_ids_on_detector(approach_detector_id)
+        # 10/27 和泉修正(駐車車両処理)
+        laneareaLength = traci.lanearea.getLength(approach_detector_id)
+        sort_vehicle_ids = self.sort_vehicle_id(True, approach_detector_id, vehicleIDs)
+        i = 0
+        for id in sort_vehicle_ids:
+            # 停止車両の場合次の車両へ
+            speed = (traci.vehicle.getSpeed(id) * 3600 / 1000)
+            speed = math.floor(speed * 10 ** 1) / (10 ** 1)
+            if speed <= 5:
+                continue
+
+            # 車両認識で誤検出の場合次の車両へ
+            if not self.vehicle_info[str(id)]["VehicleRecognitionFlag"]:
+                continue
+  
+            # 車両位置取得
+            vehicle_position = self.set_vehicle_position(True, approach_detector_id, id, False)
+
+            # 車両全体が検出器に入っていない場合次に車両へ
+            if vehicle_position == None:
+                continue
+
+            # 車両が検出範囲内に入っていない場合次に車両へ
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
+                continue
+
+            # 接近・離脱車両検出で誤検出の場合次の車両へ
+            if not self.vehicle_info[str(id)]["ApproachBreakawayFlag"]:
+                unknown_flag = "1"
+                continue
+
+            # 接近車両ありとみなし、ループ終了
+            approach_flag = "1"
+            self.sumo_log.info("vehiclePosition: " + str(vehicle_position))
+            self.sumo_log.info("vehicleSpeed: " + str(speed))
+            break
+            #print(valuelist)
+            
+        # 離脱車両
+        # print(secession_detector_id)
+        secession_vehicle_ids = []
+        # 全離脱レーンの検出器上の車両を取得
+        for detector_id in secession_detector_id:
+            # 10/27 和泉修正(駐車車両処理)
+            vehicleIDs = self.get_vehicle_ids_on_detector(detector_id)
+            # 10/27 和泉修正(駐車車両処理)
+            secession_vehicle_ids += vehicleIDs
+            # laneareaLength = traci.lanearea.getLength(detector_id)
+
+        sort_vehicle_ids = self.sort_vehicle_id(False, detector_id, secession_vehicle_ids)
+        for id in sort_vehicle_ids:
+            # 停止車両の場合次の車両へ
+            speed = (traci.vehicle.getSpeed(id) * 3600 / 1000)
+            speed = math.floor(speed * 10 ** 1) / (10 ** 1)
+            if speed <= 5:
+                continue
+
+            # 車両認識で誤検出の場合次の車両へ
+            if not self.vehicle_info[str(id)]["VehicleRecognitionFlag"]:
+                continue
+
+            # 
+            # if not self.detection_lane_judge(detector_id, tls_id, id, True):
+            #     continue
+
+            # 車両位置取得
+            vehicle_position = self.set_vehicle_position(False, detector_id, id, False)
+
+            # 車両全体が検出器に入っていない場合次に車両へ
+            if vehicle_position == None:
+                continue
+
+            # 車両が検出範囲内に入っていない場合次に車両へ
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
+                continue
+
+            # 接近・離脱車両検出で誤検出の場合次の車両へ
+            if not self.vehicle_info[str(id)]["ApproachBreakawayFlag"]:
+                unknown_flag = "1"
+                continue
+
+            breakaway_flag = "1"
+            self.sumo_log.info("vehiclePosition: " + str(vehicle_position))
+            self.sumo_log.info("vehicleSpeed: " + str(speed))
+            break
+
+        # 検出された車両すべてが誤検出の場合
+        if approach_flag == "1" or breakaway_flag == "1":
+            unknown_flag = "0"
+
+        value = {}
+        value['ApproachFlg'] = approach_flag
+        value['BreakawayFlg'] = breakaway_flag
+        value['UnknownFlg'] = unknown_flag
+        # valuelist.append(value)
+        
+        command['Value'] = value
+
+        print(command)
+        return command
 
     # ナンバープレート認識
     def license_plate_recognition(self, nodeID):
@@ -1062,8 +1325,8 @@ class SumoSim:
                 continue
 
             # 
-            if not self.detection_lane_judge(approach_detector_id, tls_id, id, True):
-                continue
+            # if not self.detection_lane_judge(approach_detector_id, tls_id, id, True):
+            #     continue
                 
             # 車両位置取得
             vehicle_position = self.set_vehicle_position(True, approach_detector_id, id, True)
@@ -1073,19 +1336,19 @@ class SumoSim:
                 continue
 
             # 車両が検出範囲内に入っていない場合次に車両へ
-            range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+            detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
             if nodeID == self.main_node_id and self.straight_detection_range != None:
-                range_max = self.straight_detection_range
+                detection_range_max = self.straight_detection_range
             if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                range_max = self.regulation_detection_range
-            if vehicle_position < detection_range_min or vehicle_position > range_max:
+                detection_range_max = self.regulation_detection_range
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[1]
 
             vehicleState = 0
-            stopTime = str(traci.vehicle.getWaitingTime(id))
+            stopTime = str(self.get_vehicle_stop_time(id))
             vehicleType = self.vehicle_info[str(id)]["VehicleType"]
             number = self.vehicle_info[str(id)]["OutputNumber"]
             topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1135,8 +1398,8 @@ class SumoSim:
                 continue
 
             # 
-            if not self.detection_lane_judge(detector_id, tls_id, id, True):
-                continue
+            # if not self.detection_lane_judge(detector_id, tls_id, id, True):
+            #     continue
 
             # 車両位置取得
             vehicle_position = self.set_vehicle_position(False, detector_id, id, True)
@@ -1146,19 +1409,19 @@ class SumoSim:
                 continue
 
             # 車両が検出範囲内に入っていない場合次に車両へ
-            range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+            detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
             if nodeID == self.main_node_id and self.straight_detection_range != None:
-                range_max = self.straight_detection_range
+                detection_range_max = self.straight_detection_range
             if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                range_max = self.regulation_detection_range
-            if vehicle_position < detection_range_min or vehicle_position > range_max:
+                detection_range_max = self.regulation_detection_range
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[1]
 
             vehicleState = 1
-            stopTime = str(traci.vehicle.getWaitingTime(id))
+            stopTime = str(self.get_vehicle_stop_time(id))
             vehicleType = self.vehicle_info[str(id)]["VehicleType"]
             number = self.vehicle_info[str(id)]["OutputNumber"]
             topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
@@ -1255,8 +1518,8 @@ class SumoSim:
                 continue
 
             # 
-            if not self.detection_lane_judge(approach_detector_id, tls_id, id, True):
-                continue
+            # if not self.detection_lane_judge(approach_detector_id, tls_id, id, True):
+            #     continue
             
             # 車両位置取得
             vehicle_position = self.set_vehicle_position(True, approach_detector_id, id, True)
@@ -1266,12 +1529,12 @@ class SumoSim:
                 continue
 
             # 車両が検出範囲内に入っていない場合次に車両へ
-            range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+            detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
             if nodeID == self.main_node_id and self.straight_detection_range != None:
-                range_max = self.straight_detection_range
+                detection_range_max = self.straight_detection_range
             if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                range_max = self.regulation_detection_range
-            if vehicle_position < detection_range_min or vehicle_position > range_max:
+                detection_range_max = self.regulation_detection_range
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
             # バウンディングボックス処理
@@ -1279,7 +1542,7 @@ class SumoSim:
 
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -1300,8 +1563,8 @@ class SumoSim:
                     continue
 
                 # 
-                if not self.detection_lane_judge(detector_id, tls_id, id, True):
-                    continue
+                # if not self.detection_lane_judge(detector_id, tls_id, id, True):
+                #     continue
                 
                 # 車両位置取得
                 vehicle_position = self.set_vehicle_position(False, detector_id, id, True)
@@ -1311,12 +1574,12 @@ class SumoSim:
                     continue
 
                 # 車両が検出範囲内に入っていない場合次に車両へ
-                range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+                detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
                 if nodeID == self.main_node_id and self.straight_detection_range != None:
-                    range_max = self.straight_detection_range
+                    detection_range_max = self.straight_detection_range
                 if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                    range_max = self.regulation_detection_range
-                if vehicle_position < detection_range_min or vehicle_position > range_max:
+                    detection_range_max = self.regulation_detection_range
+                if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                     continue
 
                 # バウンディングボックス処理
@@ -1324,7 +1587,7 @@ class SumoSim:
 
                 value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
                 value['VehicleState'] = str(vehicleState)
-                value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+                value['StopTime'] = str(self.get_vehicle_stop_time(id))
                 value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
                 value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
                 value['ImageSize'] = self.set_image_size()
@@ -1387,8 +1650,8 @@ class SumoSim:
                 continue
 
             # 
-            if not self.detection_lane_judge(approach_detector_id, tls_id, id, True):
-                continue
+            # if not self.detection_lane_judge(approach_detector_id, tls_id, id, True):
+            #     continue
             
             # 車両位置取得
             vehicle_position = self.set_vehicle_position(True, approach_detector_id, id, True)
@@ -1398,12 +1661,12 @@ class SumoSim:
                 continue
 
             # 車両が検出範囲内に入っていない場合次に車両へ
-            range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+            detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
             if nodeID == self.main_node_id and self.straight_detection_range != None:
-                range_max = self.straight_detection_range
+                detection_range_max = self.straight_detection_range
             if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                range_max = self.regulation_detection_range
-            if vehicle_position < detection_range_min or vehicle_position > range_max:
+                detection_range_max = self.regulation_detection_range
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
             # バウンディングボックス処理
@@ -1411,7 +1674,7 @@ class SumoSim:
 
             value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
             value['VehicleState'] = str(vehicleState)
-            value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+            value['StopTime'] = str(self.get_vehicle_stop_time(id))
             value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
             value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
             value['ImageSize'] = self.set_image_size()
@@ -1432,8 +1695,8 @@ class SumoSim:
                     continue
 
                 # 
-                if not self.detection_lane_judge(detector_id, tls_id, id, True):
-                    continue
+                # if not self.detection_lane_judge(detector_id, tls_id, id, True):
+                #     continue
 
                 # 車両位置取得
                 vehicle_position = self.set_vehicle_position(False, detector_id, id, True)
@@ -1443,12 +1706,12 @@ class SumoSim:
                     continue
 
                 # 車両が検出範囲内に入っていない場合次に車両へ
-                range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+                detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
                 if nodeID == self.main_node_id and self.straight_detection_range != None:
-                    range_max = self.straight_detection_range
+                    detection_range_max = self.straight_detection_range
                 if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                    range_max = self.regulation_detection_range
-                if vehicle_position < detection_range_min or vehicle_position > range_max:
+                    detection_range_max = self.regulation_detection_range
+                if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                     continue
 
                 # バウンディングボックス処理
@@ -1456,7 +1719,7 @@ class SumoSim:
 
                 value['VehicleType'] = self.vehicle_info[str(id)]["VehicleType"]
                 value['VehicleState'] = str(vehicleState)
-                value['StopTime'] = str(traci.vehicle.getWaitingTime(id))
+                value['StopTime'] = str(self.get_vehicle_stop_time(id))
                 value['TopLeft'] = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
                 value['BottomRight'] = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
                 value['ImageSize'] = self.set_image_size()
@@ -1521,8 +1784,8 @@ class SumoSim:
             value['ComFlag'] = "1"
             value['Distance'] = str(distance)
             value['Speed'] = str(speed)
-            if len(valuelist) < 6:
-                valuelist.append(value)
+            # if len(valuelist) < 6:
+            valuelist.append(value)
 
         # 離脱車両
         for detector_id in secession_detector_id:
@@ -1550,8 +1813,8 @@ class SumoSim:
                 value['ComFlag'] = "0"
                 value['Distance'] = str(distance)
                 value['Speed'] = str(speed)
-                if len(valuelist) < 6:
-                    valuelist.append(value)
+                # if len(valuelist) < 6:
+                valuelist.append(value)
 
         # 車両台数が5台以下の場合
         while len(valuelist) < 6:
@@ -1566,7 +1829,7 @@ class SumoSim:
         valuelist = sorted(valuelist, key=lambda x: float(x["Distance"]), reverse=False)
         valuelist = sorted(valuelist, key=lambda x: int(x["ComFlag"]), reverse=True)
 
-        command['Value'] = valuelist
+        command['Value'] = valuelist[0:6]
 
         return command
 
@@ -1705,7 +1968,26 @@ class SumoSim:
         settings = json.load(file_open)
 
         return settings
-        
+
+    # デフォルト設定
+    def set_settings_default(self):
+        if "APPROACH_BREAKAWAY_DETECTION_DISTANCE_MIN" not in self.settings:
+            self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MIN"] = "0"
+        if "APPROACH_BREAKAWAY_DETECTION_DISTANCE_MAX" not in self.settings:
+            self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MAX"] = "15"
+        if "APPROACH_BREAKAWAY_DETECTION_RATE" not in self.settings:
+            self.settings["APPROACH_BREAKAWAY_DETECTION_RATE"] = "100"
+        if "FLAG_APPROACH_BREAKAWAY_DETECTION" not in self.settings:
+            self.settings["FLAG_APPROACH_BREAKAWAY_DETECTION"] = "TRUE"
+        # if "" in self.settings:
+        #     self.settings[""] = ""
+        # if "" in self.settings:
+        #     self.settings[""] = ""
+        # if "" in self.settings:
+        #     self.settings[""] = ""
+
+        return
+    
     # シミュレーション設定
     def simulation_setting(self):
         return True
@@ -1843,17 +2125,17 @@ class SumoSim:
                 continue
             results.append((vehicle_id, vehilce_position))
         
-        self.sumo_log.info("-----------------------------ソート前車両リスト-----------------------------")
-        self.sumo_log.info(vehicle_ids)
-        self.sumo_log.info(results)
-        self.sumo_log.info("-----------------------------ソート後車両リスト-----------------------------")
+        # self.sumo_log.info("-----------------------------ソート前車両リスト-----------------------------")
+        # self.sumo_log.info(vehicle_ids)
+        # self.sumo_log.info(results)
+        # self.sumo_log.info("-----------------------------ソート後車両リスト-----------------------------")
 
         sorted_results = sorted(results, key=lambda x: x[1])
         for sorted_id, sorted_result in sorted_results:
             result.append(sorted_id)
 
-        self.sumo_log.info(sorted_results)
-        self.sumo_log.info(result)
+        # self.sumo_log.info(sorted_results)
+        # self.sumo_log.info(result)
 
         return result
 
@@ -1978,18 +2260,21 @@ class SumoSim:
             self.vehicle_info[str(id)]["TrafficJamFlag"] = self.detection_judge(int(self.settings["TRAFFIC_JAM_DETECTION_RATE"]))
             self.vehicle_info[str(id)]["VehicleRecognitionFlag"] = self.detection_judge(int(self.settings["VEHICLE_DETECTION_RATE"]))
             self.vehicle_info[str(id)]["SpeedDistanceFlag"] = self.detection_judge(int(self.settings["SENSOR_DETECTION_RATE"]))
+            self.vehicle_info[str(id)]["ApproachBreakawayFlag"] = self.detection_judge(int(self.settings["APPROACH_BREAKAWAY_DETECTION_RATE"]))
             self.vehicle_info[str(id)]["OutputNumber"] = self.number_detection_judge(int(self.settings["LICENSE_PLATE_DETECTION_RATE"]), self.vehicle_info[str(id)]["Number"])
 
             # 10/27 和泉修正(駐車車両処理)
             # 駐車車両ありシナリオの場合
             if self.flag_parking_vehicle == True:
                 # 車両がいずれかのレーンにいる場合レーンIDを格納、駐車車両ではないと判断
-                if traci.vehicle.getLaneID(id) != "":
-                    self.vehicle_info[str(id)]["LastLaneID"] = traci.vehicle.getLaneID(id)
+                if not traci.vehicle.isStoppedParking(id):
+                    self.vehicle_info[str(id)]["LastLaneID"] =  traci.vehicle.getLaneID(id)
                     self.vehicle_info[str(id)]["FlagParking"] = "False"
+                    self.vehicle_info[str(id)]["StopTime"] = 0
                 # 車両がどのレーンにもいない場合、駐車車両と判断
                 else:
                     self.vehicle_info[str(id)]["FlagParking"] = "True"
+                    self.vehicle_info[str(id)]["StopTime"] = self.vehicle_info[str(id)]["StopTime"] + 0.2
 
             
     # 検出器上の車両取得
@@ -2013,6 +2298,18 @@ class SumoSim:
         return vehicle_ids
         # 10/27 和泉修正(駐車車両処理)
 
+    # 停止時間取得
+    def get_vehicle_stop_time(self, vehicle_id):
+        stop_time = 0
+        # 駐車車両の場合、駐車車両用の停止時間をセット
+        if traci.vehicle.isStoppedParking(vehicle_id):
+            stop_time = self.vehicle_info[str(vehicle_id)]["StopTime"]
+        else:
+            stop_time = traci.vehicle.getWaitingTime(vehicle_id)
+        # print(math.floor(stop_time))
+
+        return math.floor(stop_time)
+
     # データ送信時の画像サイズ成形
     def set_image_size(self):
         return str(self.image_size[0]) + "x" + str(self.image_size[1])
@@ -2031,6 +2328,7 @@ class SumoSim:
         tls_state_list["yellow"] = tls_state.replace('r', 'y')
         tls_state_list["green"] = tls_state.replace('r', 'G')
         tls_state_list["state"] = "red"
+        tls_state_list["system_state"] = "red"
 
         return tls_state_list
 
@@ -2047,6 +2345,8 @@ class SumoSim:
         if lane_type >= "2":
             lane = "node" + str(int(lane_type) - 1)
             # traffic_state = traci.trafficlight.getPhaseName(self.straight_traffic_guide_id)
+        if lane == self.person_guide_lane:
+            return False
         color_state = self.tls_state_list[lane]["state"]
 
         # 誘導状態の情報をセット
@@ -2092,6 +2392,7 @@ class SumoSim:
 
         # SUMO上の工事帯信号を変更
         traci.trafficlight.setRedYellowGreenState(self.tls_state_list[lane]["id"], self.tls_state_list[lane][traffic_state_str])
+        self.tls_state_list[lane]["system_state"] = traffic_state_str
         if system:
             self.tls_state_list[lane]["state"] = traffic_state_str
             # 誘導信号変化履歴書き込み
@@ -2101,12 +2402,14 @@ class SumoSim:
 
     # タイムアウト処理
     def time_out(self):
-        # タイムアウト発生中か判定
-        if not self.time_out_flag:
+        # タイムアウト発生中、緊急停止中か判定
+        if not self.time_out_flag and not self.collision_caution:
             return
 
+        # 工事帯内の車両数を取得
         construction_vehicle_number = self.get_inside_car_number()
         if construction_vehicle_number > 0:
+            self.construction_vehicle_time = None
             return
 
         # 工事帯内車両なしとなった時間が格納済みか判定
@@ -2125,12 +2428,22 @@ class SumoSim:
                 self.sumo_log.info(result)
                 self.collision_caution = False
             result = self.construction_vehicle_none_operation("Tablet01")
-            self.send(self.set_command(result))
+
+            # タイムアウト発生履歴
+            # print("----------タイムアウト発生履歴----------")
+            self.time_out_history_flag = False
+            self.time_out_history()
+
+            # 最終車両のナンバープレート認識などで、業務プロセスが自動でタイムアウト解除した場合は
+            # タイムアウト解除コマンドは送らない
+            if self.time_out_value == "1":
+                self.send(self.set_command(result))
+
             self.sumo_log.info("-----------------------------タイムアウト解除-----------------------------")
             self.sumo_log.info(result)
             self.construction_vehicle_time = None
             self.time_out_flag = False
-            self.time_out_history_flag = False
+        # self.sumo_log.info(result)
 
         return
 
@@ -2150,11 +2463,18 @@ class SumoSim:
 
     # タイムアウト発生処理
     def construction_passing_state_update(self, value):
-        if value["TimeOutFlg"] == "1":
+        if value["TimeOutFlg"] == "1" and not self.time_out_flag:
+            self.time_out_value = "1"
             self.time_out_flag = True
             self.time_out_side = value["TimeOutSide"]
+            self.time_out_timestamp = self.get_time()
+            self.time_out_sim_timestamp = self.get_sim_time()
             self.sumo_log.info("-----------------------------タイムアウト発生-----------------------------")
+            traci.gui.setStaticInfo("timeOutTime", "")
             # self.sumo_log.info(result)
+        elif value["TimeOutFlg"] == "0" and self.time_out_flag:
+            self.time_out_value = "0"
+            self.sumo_log.info("-----------------------------タイムアウト自動解除-------------------------")
 
         return
 
@@ -2167,6 +2487,8 @@ class SumoSim:
             if int(value["CollisionCaution"]) == 1:
                 self.sumo_log.info("-----------------------------緊急停止発生-----------------------------")
                 self.collision_caution = True
+                # traci.gui.setStaticInfo("collisionTime", "")
+                break
 
         return
 
@@ -2490,11 +2812,15 @@ class SumoSim:
         if not self.time_out_flag or self.time_out_history_flag:
             return
 
-        file_name = "timeout.txt"
-        time_stamp = self.get_time()
-        sim_time_stamp = self.get_sim_time()
+        if self.time_out_value == "1":
+            # タイムアウト手動解除の記録
+            file_name = "timeout.txt"
+        else:
+            # タイムアウト自動解除の記録
+            file_name = "timeout_auto.txt"
+
         lane_kind = self.time_out_side
-        output_data = [str(time_stamp), str(sim_time_stamp), str(lane_kind)]
+        output_data = [str(self.time_out_timestamp), str(self.time_out_sim_timestamp), str(lane_kind)]
         print(file_name)
         print(output_data)
         self.time_out_history_flag = True
@@ -2744,6 +3070,7 @@ class SumoSim:
         self.NearbyTrafficLight_LaneNumber("nearbyTrafficLight_%s.txt" % ("1"), datalist)
         self.NearbyTrafficLight_LaneNumber("nearbyTrafficLight_%s.txt" % ("2"), datalist)
         self.timeout("timeout.txt", datalist)
+        self.timeout("timeout_auto.txt", datalist)
         self.passingCar_LaneNumber("passingCar_%s.txt" % ("1"), datalist)
         self.passingCar_LaneNumber("passingCar_%s.txt" % ("2"), datalist)
         self.waitTime("waitTime.txt", datalist)

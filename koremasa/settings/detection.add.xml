@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<additional>
+    <inductionLoop id="straightIn" lane="Const_St_0" pos="0" length="5" file="result.out.xml"/>
+    <inductionLoop id="straightOut" lane="Const_St_0" pos="-5" length="5" file="result.out.xml"/>
+    <inductionLoop id="regulationIn" lane="Const_Regu_0" pos="0" length="5" file="result.out.xml"/>
+    <inductionLoop id="regulationOut" lane="Const_Regu_0" pos="-5" length="5" file="result.out.xml"/>
+    <!-- <inductionLoop id="constDammy" lane="Const_Dammy_0" pos="0" length="60" file="result.out.xml"/> -->
+    <laneAreaDetector id="SI" lanes="-E9_0 St_App_0 St_In_0" friendlyPos="false" file="result.out.xml"/>
+    <laneAreaDetector id="SO" lanes="St_Out_0 St_Sec_0 E9_0" friendlyPos="false" file="result.out.xml"/>
+    <laneAreaDetector id="RI" lanes="E0_0 Regu_App_0 Regu_In_0" friendlyPos="false" file="result.out.xml"/>
+    <laneAreaDetector id="RO" lanes="Regu_Out_0 Regu_Sec_0 -E0_0" friendlyPos="false" file="result.out.xml"/>
+    <laneAreaDetector id="CS" lanes="Const_St_0" friendlyPos="false" file="result.out.xml"/>
+    <laneAreaDetector id="CR" lanes="Const_Regu_0" friendlyPos="false" file="result.out.xml"/>
+</additional>
