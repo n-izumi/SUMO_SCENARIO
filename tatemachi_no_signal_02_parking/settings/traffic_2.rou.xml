@@ -38,7 +38,7 @@
     <!-- begin: 発生時間（SIM開始から何秒後に駐車車両が生成されるか、SIM開始後30秒後に駐車車両を生成する場合 "30" を設定） -->
     <!-- duration: 駐車時間（駐車してから何秒後に再出発するか、5分間駐車する場合 "300" を設定） -->
     <!-- parking: 駐車スペース有無（true=駐車スペースあり、false=駐車スペースなし） -->
-    <flow id="straight_parking" type="normal" from="-TW" to="B" begin="10" number="1">
+    <flow id="straight_parking" type="normal" from="-TW" to="B" begin="5" number="0" color="0.5,0.5,0">
         <stop lane="E0_0" endPos="-20" duration="60" parking="true"/>
     </flow>
 
@@ -49,7 +49,8 @@
     <!-- begin: 発生時間（SIM開始から何秒後に駐車車両が生成されるか、SIM開始後30秒後に駐車車両を生成する場合 "30" を設定） -->
     <!-- duration: 駐車時間（駐車してから何秒後に再出発するか、5分間駐車する場合 "300" を設定） -->
     <!-- parking: 駐車スペース有無（true=駐車スペースあり、false=駐車スペースなし） -->
-    <flow id="regulation_parking" type="normal" from="-B" to="TW" begin="20" number="1">
-        <stop lane="-B_0" endPos="-10" duration="10" parking="true"/>
+    <flow id="regulation_parking1" type="normal" from="-B" to="TW" begin="10" number="1" color="0.5,0.5,0.5">
+        <stop lane="-B_0" endPos="-10" duration="600" parking="true"/>
     </flow>
+
 </routes>
