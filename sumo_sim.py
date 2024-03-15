@@ -293,12 +293,17 @@ class SumoSim:
                 "--branch-tls-red", self.construction_red_time,
                 "--straight-traffic-volume", self.straight_traffic_volume,
                 "--regulation-traffic-volume", self.regulation_traffic_volume,
-                "--simulation-speed", str(self.sim_speed)
+                "--simulation-speed", str(self.sim_speed),
+                "--num-clients", "2"
             ]
         if not self.auto_start == "":
             sumo_option.append(self.auto_start)
+                # "--num-clients", "2"
+
+        # sumo_option.append(self.auto_start)
 
         traci.start(sumo_option)
+        traci.setOrder(1)
         self.is_traci_start = True
         self.run()
         traci.close()
@@ -353,6 +358,7 @@ class SumoSim:
                     time.sleep(5)
                     result = self.collision_caution_release_operation("Tablet01")
                     self.send(self.set_command(result))
+                    self.send(self.set_command(self.led_control("BoxPC01")))
                     break
 
                 time.sleep(1)
@@ -1943,6 +1949,21 @@ class SumoSim:
 
         return command
         
+    # 緊急停止解除操作
+    def led_control(self, nodeID):
+        command = {}     # 送信データの雛形
+        value = {}
+        valuelist = []
+        timeStamp = self.get_time()
+        command['CommandID'] = "0x00010090"
+        command['EventID'] = "_".join([nodeID, str(timeStamp)])
+        command['TimeStamp'] = str(timeStamp)
+        value['Operation'] = "3"
+        # valuelist.append(value)
+        command['Value'] = value
+
+        return command
+        
     def get_vehicle_type(self, vehicleID):
         typeID = traci.vehicle.getTypeID(vehicleID)
         #print(typeID)
@@ -2393,6 +2414,46 @@ class SumoSim:
         # SUMO上の工事帯信号を変更
         traci.trafficlight.setRedYellowGreenState(self.tls_state_list[lane]["id"], self.tls_state_list[lane][traffic_state_str])
         self.tls_state_list[lane]["system_state"] = traffic_state_str
+        if system:
+            self.tls_state_list[lane]["state"] = traffic_state_str
+            # 誘導信号変化履歴書き込み
+            self.traffic_guide_change_history()
+        
+        return
+
+    # 誘導状態更新判断
+    def set_traffic_state_carla(self, lane_type, system=1):
+        print("carla")
+        sub_traffic_state_str = ""
+        sub_lane = ""
+        # ストレート、規制、枝道のどれか判定
+        if lane_type == "0":
+            lane = "straight"
+            sub_lane = "regulation"
+        if lane_type == "1":
+            lane = "regulation"
+            sub_lane = "straight"
+        if lane_type >= "2":
+            lane = "node" + str(int(lane_type) - 1)
+            # traffic_state = traci.trafficlight.getPhaseName(self.straight_traffic_guide_id)
+
+        print("carla")
+        
+        # 誘導状態の情報をセット
+        if self.tls_state_list[lane]["system_state"] == "green" or self.tls_state_list[lane]["system_state"] == "yellow":
+            traffic_state_str = "red"
+        if self.tls_state_list[lane]["system_state"] == "red":
+            traffic_state_str = "green"
+            sub_traffic_state_str = "red"
+        print("carla")
+
+        # SUMO上の工事帯信号を変更
+        traci.trafficlight.setRedYellowGreenState(self.tls_state_list[lane]["id"], self.tls_state_list[lane][traffic_state_str])
+        self.tls_state_list[lane]["system_state"] = traffic_state_str
+        print("carla")
+        traci.trafficlight.setRedYellowGreenState(self.tls_state_list[sub_lane]["id"], self.tls_state_list[sub_lane][sub_traffic_state_str])
+        self.tls_state_list[sub_lane]["system_state"] = sub_traffic_state_str
+        print("carla")
         if system:
             self.tls_state_list[lane]["state"] = traffic_state_str
             # 誘導信号変化履歴書き込み
@@ -3210,6 +3271,13 @@ class SumoSim:
         if command_id == "traci_tls_change":
             # 工事帯信号変更コマンド受信
             self.lane_state_update(values, 0)
+
+        if command_id == "traci_tls_change_carla":
+            # 工事帯信号変更コマンド受信
+            # self.lane_state_update(values, 0)
+            self.sumo_log.info("carla command ")
+            print("carla")
+            self.set_traffic_state_carla("1", 0)
 
         res = make_response(result)
         return res
