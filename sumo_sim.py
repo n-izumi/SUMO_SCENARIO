@@ -151,21 +151,20 @@ class SumoSim:
 
         # 滞留なし車線フラグ
         self.straight_lane_info_use_flg = "1"
-        self.regulation_lane_info_use_flg = "1"
+        self.regulation_lane_info_use_flg = "0"
         self.person_guide_lane = ""
-        for lane_setting in self.lane_settings:
-            if "LaneKind" not in lane_setting or "LaneInfoUseFlg" not in lane_setting:
-                continue
-            # ストレート側
-            if lane_setting["LaneKind"] == "0":
-                self.straight_lane_info_use_flg = lane_setting["LaneInfoUseFlg"]
-                if self.straight_lane_info_use_flg == "0":
+        if "CooperationFlg" in self.public_settings:
+            if self.public_settings["CooperationFlg"] == "1":
+                # ストレート側
+                if self.public_settings["CooperationStaffSide"] == "0":
+                    self.straight_lane_info_use_flg = "0"
                     self.person_guide_lane = "straight"
-            # 規制側
-            if lane_setting["LaneKind"] == "1":
-                self.regulation_lane_info_use_flg = lane_setting["LaneInfoUseFlg"]
-                if self.regulation_lane_info_use_flg == "0":
+                # 規制側
+                elif self.public_settings["CooperationStaffSide"] == "1":
+                    self.regulation_lane_info_use_flg = "1"
                     self.person_guide_lane = "regulation"
+
+        self.sumo_log.info("誘導隊員制御車線: " + self.person_guide_lane)
 
         self.auto_start = ""
         if options.auto_start:
@@ -523,7 +522,7 @@ class SumoSim:
             self.sumo_log.info("-----------------------------サブPC-----------------------------")
 
             # 滞留なしかどうか判定
-            if self.regulation_lane_info_use_flg == "0":
+            if self.regulation_lane_info_use_flg == "1":
                 # 滞留なしの場合各イベントの通知をしない
                 self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
             
@@ -643,7 +642,7 @@ class SumoSim:
                 self.sumo_log.info("-----------------------------規制側-----------------------------")
                 
                 # 滞留なしかどうか判定
-                if self.regulation_lane_info_use_flg == "0":
+                if self.regulation_lane_info_use_flg == "1":
                     # 滞留なしの場合各イベントの通知をしない
                     self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
                 
@@ -680,7 +679,7 @@ class SumoSim:
                         self.sumo_log.info("-----------------------------規制側-----------------------------")
                         
                         # 滞留なしかどうか判定
-                        if self.regulation_lane_info_use_flg == "0":
+                        if self.regulation_lane_info_use_flg == "1":
                             # 滞留なしの場合各イベントの通知をしない
                             self.sumo_log.info("滞留なし車線のため、各イベントの通知なし")
                         

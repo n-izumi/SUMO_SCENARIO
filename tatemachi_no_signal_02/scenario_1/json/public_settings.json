@@ -3,7 +3,7 @@
     "ZoneBranchCnt": "0",
     "IntersectionInsideFlg": "0",
     "ZoneDistanceToSignalSt": "0",
-    "KanriSendFlg": "1"
+    "KanriSendFlg": "1",
     "CooperationFlg": "0",
     "CooperationStaffSide": "0",
     "CooperationKind": "0"

@@ -7,7 +7,7 @@
         "StopLineAndZoneBranchCnt": "0",
         "BaseImagePath": "/var/www/html/admin/Images/demo_main.jpg",
         "KanriSendFlg": "1",
-        "LaneInfoUseFlg": "0"
+        "CooperationState": "0"
     },
     {
         "LaneKind": "1",
@@ -17,6 +17,6 @@
         "StopLineAndZoneBranchCnt": "0",
         "BaseImagePath": "/var/www/html/admin/Images/demo_sub.jpg",
         "KanriSendFlg": "1",
-        "LaneInfoUseFlg": "1"
+        "CooperationState": "0"
     }
 ]
