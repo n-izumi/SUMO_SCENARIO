@@ -73,6 +73,8 @@ class SumoSim:
                             default=False, help="tell me what you are doing")
         optParser.add_option("--disable-sensor-file", default="", help="disable sensor file path")
         optParser.add_option("--delay-event-file", default="", help="delay event file path")
+        optParser.add_option("--straight-island-flag", type=int,
+                            default=0, help="straight island flag")
         # remaining command line options are treated as rsync args
         options, args = optParser.parse_args()
         self.set_log_config()
@@ -142,6 +144,12 @@ class SumoSim:
         self.new_signal_event_flg = False
         if options.new_signal_event:
             self.new_signal_event_flg = True
+
+        # ストレート側の島フラグ
+        self.straight_island_flg = False
+        if options.straight_island_flag:
+            self.sumo_log.info("-----ストレート側の島あり-----")
+            self.straight_island_flg = True
 
         # 駐車車両フラグ
         self.flag_parking_vehicle = False
@@ -1350,10 +1358,16 @@ class SumoSim:
             if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
+            # 規制側もしくはストレート側に島ありの場合、工事帯から10m以内の車両は反対車線で検出される
+            vehicleState = 0
+            if self.straight_island_flg or nodeID == self.sub_node_id:
+                if vehicle_position <= 10:
+                    vehicleState = 1
+                    self.sumo_log.info(nodeID + ": 進入車線にて工事帯から10m以内のため反対車線で検出")
+
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[1]
 
-            vehicleState = 0
             stopTime = str(self.get_vehicle_stop_time(id))
             vehicleType = self.vehicle_info[str(id)]["VehicleType"]
             number = self.vehicle_info[str(id)]["OutputNumber"]
@@ -1426,10 +1440,16 @@ class SumoSim:
             if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
+            # 規制側かつストレート側に島なしの場合、工事帯から10m以内の車両は反対車線で検出される
+            vehicleState = 1
+            if not self.straight_island_flg and nodeID == self.main_node_id:
+                if vehicle_position <= 10:
+                    vehicleState = 0
+                    self.sumo_log.info(nodeID + ": 離脱車線にて工事帯から10m以内のため反対車線で検出")
+
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[1]
 
-            vehicleState = 1
             stopTime = str(self.get_vehicle_stop_time(id))
             vehicleType = self.vehicle_info[str(id)]["VehicleType"]
             number = self.vehicle_info[str(id)]["OutputNumber"]
@@ -1546,6 +1566,12 @@ class SumoSim:
             if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
+            # 規制側もしくはストレート側に島ありの場合、工事帯から10m以内の車両は反対車線で検出される
+            if self.straight_island_flg or nodeID == self.sub_node_id:
+                if vehicle_position <= 10:
+                    vehicleState = 1
+                    self.sumo_log.info(nodeID + ": 進入車線にて工事帯から10m以内のため反対車線で検出")
+
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[0]
 
@@ -1590,6 +1616,12 @@ class SumoSim:
                     detection_range_max = self.regulation_detection_range
                 if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                     continue
+
+                # 規制側かつストレート側に島なしの場合、工事帯から10m以内の車両は反対車線で検出される
+                if not self.straight_island_flg and nodeID == self.main_node_id:
+                    if vehicle_position <= 10:
+                        vehicleState = 0
+                        self.sumo_log.info(nodeID + ": 離脱車線にて工事帯から10m以内のため反対車線で検出")
 
                 # バウンディングボックス処理
                 vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[0]
@@ -1678,6 +1710,12 @@ class SumoSim:
             if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
+            # 規制側もしくはストレート側に島ありの場合、工事帯から10m以内の車両は反対車線で検出される
+            if self.straight_island_flg or nodeID == self.sub_node_id:
+                if vehicle_position <= 10:
+                    vehicleState = 1
+                    self.sumo_log.info(nodeID + ": 進入車線にて工事帯から10m以内のため反対車線で検出")
+
             # バウンディングボックス処理
             vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[0]
 
@@ -1722,6 +1760,12 @@ class SumoSim:
                     detection_range_max = self.regulation_detection_range
                 if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                     continue
+
+                # 規制側かつストレート側に島なしの場合、工事帯から10m以内の車両は反対車線で検出される
+                if not self.straight_island_flg and nodeID == self.main_node_id:
+                    if vehicle_position <= 10:
+                        vehicleState = 0
+                        self.sumo_log.info(nodeID + ": 離脱車線にて工事帯から10m以内のため反対車線で検出")
 
                 # バウンディングボックス処理
                 vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[0]
