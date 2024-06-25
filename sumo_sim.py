@@ -75,6 +75,8 @@ class SumoSim:
         optParser.add_option("--delay-event-file", default="", help="delay event file path")
         optParser.add_option("--straight-island-flag", type=int,
                             default=0, help="straight island flag")
+        optParser.add_option("--system-vehicle-position", type=int,
+                            default=0, help="vehicle position")
         # remaining command line options are treated as rsync args
         options, args = optParser.parse_args()
         self.set_log_config()
@@ -156,6 +158,9 @@ class SumoSim:
         if "FLAG_PARKING_VEHILCE" in self.settings:
             if self.settings["FLAG_PARKING_VEHILCE"] == "TRUE":
                 self.flag_parking_vehicle = True
+        
+        # 工事車両停止位置
+        self.system_vehicle_position = options.system_vehicle_position
 
         # 滞留なし車線フラグ
         self.straight_lane_info_use_flg = "1"
@@ -189,8 +194,13 @@ class SumoSim:
         self.bounding_box_min = [160, 120]
         self.bounding_box_max = [800, 600]
 
-        self.main_node_id = "NODEPC01"
-        self.sub_node_id = "NODEPC02"
+        if options.system_vehicle_position == 0:
+            self.main_node_id = "NODEPC01"
+            self.sub_node_id = "NODEPC02"
+        else:
+            self.main_node_id = "NODEPC02"
+            self.sub_node_id = "NODEPC01"
+            
         # self.branch_node_id = "BoxPC03"
         self.branch_info = self.set_branch_info()
         self.straight_traffic_guide_id = self.settings["STRAIGHT_TRAFFIC_GUIDE"]
