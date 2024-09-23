@@ -217,6 +217,9 @@ class SumoSim:
         self.straight_vehicle_number = 0
         self.regulation_vehicle_number = 0
 
+        self.straight_range = 20
+        self.regulation_range = 10
+
         self.url = self.settings["HTTP_SERVER_URL"]
         # self.sumoCom = sumo_com.SumoCom(self.settings["HTTP_SERVER_URL"], 30, self.settings["HTTP_SERVER_HOST"], self.settings["HTTP_SERVER_PORT"])
         
@@ -1169,25 +1172,37 @@ class SumoSim:
         detection_range_min = float(self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MIN"])
         detection_range_max = float(self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MAX"])
 
-        # 信号ありの車線の場合、信号までの距離を範囲とする
-        if nodeID == self.main_node_id and self.straight_detection_range != None:
-            detection_range_max = min([self.straight_detection_range, detection_range_max])
-        elif nodeID == self.sub_node_id and self.regulation_detection_range != None:
-            detection_range_max = min([self.regulation_detection_range, detection_range_max])
-
         # 該当車線の検出器IDを取得
         if nodeID == self.main_node_id:
             approach_detector_id = self.settings["STRAIGHT_APPROACH_DETECTOR"]
             secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
+            detection_range = self.straight_range
         elif nodeID == self.sub_node_id:
             approach_detector_id = self.settings["REGULATION_APPROACH_DETECTOR"]
             secession_detector_id = self.settings["REGULATION_SECESSION_DETECTOR"].split(",")
+            detection_range = self.regulation_range
         else:
             branch_data = self.get_branch_data(nodeID)
             # print(branch_data)
             approach_detector_id = branch_data["approach"]["id"][0]
             secession_detector_id = branch_data["secession"]["id"]
+            detection_range = 0
             detection_range_min = 0
+
+        self.sumo_log.info("-----検出範囲-----")
+        self.sumo_log.info(detection_range_min)
+        self.sumo_log.info(detection_range_max)
+        detection_range_min = detection_range_min + detection_range
+        detection_range_max = detection_range_max + detection_range
+        self.sumo_log.info(detection_range_min)
+        self.sumo_log.info(detection_range_max)
+        self.sumo_log.info("-----検出範囲-----")
+
+        # 信号ありの車線の場合、信号までの距離を範囲とする
+        if nodeID == self.main_node_id and self.straight_detection_range != None:
+            detection_range_max = min([self.straight_detection_range, detection_range_max])
+        elif nodeID == self.sub_node_id and self.regulation_detection_range != None:
+            detection_range_max = min([self.regulation_detection_range, detection_range_max])
 
         command['CommandID'] = "0xF0070000"
         command['EventID'] = "_".join([nodeID, str(timeStamp)])
@@ -1201,7 +1216,7 @@ class SumoSim:
         sort_vehicle_ids = self.sort_vehicle_id(True, approach_detector_id, vehicleIDs)
         i = 0
         for id in sort_vehicle_ids:
-            # 停止車両の場合次の車両へ
+            # 停止車両の場合次の車両へ(時速5km以下の場合停止車両とする)
             speed = (traci.vehicle.getSpeed(id) * 3600 / 1000)
             speed = math.floor(speed * 10 ** 1) / (10 ** 1)
             if speed <= 5:
@@ -1314,18 +1329,29 @@ class SumoSim:
         if nodeID == self.main_node_id:
             approach_detector_id = self.settings["STRAIGHT_APPROACH_DETECTOR"]
             secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
+            detection_range = self.straight_range
             tls_id = self.settings["STRAIGHT_TRAFFIC_LIGHT"]
         elif nodeID == self.sub_node_id:
             approach_detector_id = self.settings["REGULATION_APPROACH_DETECTOR"]
             secession_detector_id = self.settings["REGULATION_SECESSION_DETECTOR"].split(",")
+            detection_range = self.regulation_range
             tls_id = self.settings["REGULATION_TRAFFIC_LIGHT"]
         else:
             branch_data = self.get_branch_data(nodeID)
             # print(branch_data)
             approach_detector_id = branch_data["approach"]["id"][0]
             secession_detector_id = branch_data["secession"]["id"]
+            detection_range = 0
             detection_range_min = 0
 
+        self.sumo_log.info("-----検出範囲-----")
+        self.sumo_log.info(detection_range_min)
+        self.sumo_log.info(detection_range_max)
+        detection_range_min = detection_range_min + detection_range
+        detection_range_max = detection_range_max + detection_range
+        self.sumo_log.info(detection_range_min)
+        self.sumo_log.info(detection_range_max)
+        self.sumo_log.info("-----検出範囲-----")
 
         command['CommandID'] = "0xF0010700"
         command['EventID'] = "_".join([nodeID, str(timeStamp)])
@@ -1359,12 +1385,12 @@ class SumoSim:
 
             # 車両が検出範囲内に入っていない場合次に車両へ
             light_detection_range_max = 15
-            if nodeID == self.main_node_id and self.straight_detection_range != None:
-                light_detection_range_max = self.straight_detection_range
-            if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                light_detection_range_max = self.regulation_detection_range
             if detection_range_max > light_detection_range_max:
-                detection_range_max = light_detection_range_max
+                light_detection_range_max = detection_range_max
+            if nodeID == self.main_node_id and self.straight_detection_range != None:
+                detection_range_max = self.straight_detection_range
+            elif nodeID == self.sub_node_id and self.regulation_detection_range != None:
+                detection_range_max = self.regulation_detection_range
             if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
