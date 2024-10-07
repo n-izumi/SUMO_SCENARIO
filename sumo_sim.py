@@ -1467,12 +1467,12 @@ class SumoSim:
             # 車両が検出範囲内に入っていない場合次に車両へ
             # detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
             light_detection_range_max = 15
-            if nodeID == self.main_node_id and self.straight_detection_range != None:
-                light_detection_range_max = self.straight_detection_range
-            if nodeID == self.sub_node_id and self.regulation_detection_range != None:
-                light_detection_range_max = self.regulation_detection_range
             if detection_range_max > light_detection_range_max:
-                detection_range_max = light_detection_range_max
+                light_detection_range_max = detection_range_max
+            if nodeID == self.main_node_id and self.straight_detection_range != None:
+                detection_range_max = self.straight_detection_range
+            elif nodeID == self.sub_node_id and self.regulation_detection_range != None:
+                detection_range_max = self.regulation_detection_range
             if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
                 continue
 
