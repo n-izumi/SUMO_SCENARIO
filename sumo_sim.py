@@ -395,6 +395,7 @@ class SumoSim:
         self.sim_start_end_time()
 
         t_old = -1
+        t_old_branch = -60
 
         while traci.simulation.getTime() <= self.sim_time:
             traci.simulationStep()
@@ -613,6 +614,16 @@ class SumoSim:
             branch_idx = 0
             for branch_node in self.branch_info:
                 node_id = branch_node["node_id"]
+
+                # 新規枝道処理(1/28)
+                # if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
+                # if True:
+                #     f008_0000 = self.license_plate_recognition_branch(node_id)
+                #     if not self.is_disable_sensor(3 + branch_idx, 17, t_now_ms):
+                #         print(f008_0000)
+                #         self.sumo_log.info(f008_0000)
+                #         self.send(self.set_command(f008_0000))
+
                 # print(node_id)
                 # ナンバープレート認識
                 if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
@@ -711,6 +722,26 @@ class SumoSim:
                                 self.sumo_log.info(f006_0100)   # 工事帯センサ前車両検出
                                 self.send(self.set_command(f006_0100))
                     t_old = t_now
+
+            # １分ごとに送信するロジック
+            if step > 0:
+                t_delta = t_now - t_old_branch
+                if t_delta >= 60:
+                    branch_idx = 0
+                    for branch_node in self.branch_info:
+                        node_id = branch_node["node_id"]
+
+                        # 新規枝道処理(1/28)
+                        # if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
+                        if True:
+                            f008_0000 = self.license_plate_recognition_branch(node_id)
+                            if not self.is_disable_sensor(3 + branch_idx, 17, t_now_ms):
+                                print(f008_0000)
+                                self.sumo_log.info(f008_0000)
+                                self.send(self.set_command(f008_0000))
+                        branch_idx += 1
+
+                    t_old_branch = t_now
 
             # タイムアウト処理
             self.time_out()
@@ -1354,6 +1385,236 @@ class SumoSim:
         self.sumo_log.info("-----検出範囲-----")
 
         command['CommandID'] = "0xF0010700"
+        command['EventID'] = "_".join([nodeID, str(timeStamp)])
+        command['TimeStamp'] = str(timeStamp)
+
+        # 接近車両
+        # 10/27 和泉修正(駐車車両処理)
+        vehicleIDs = self.get_vehicle_ids_on_detector(approach_detector_id)
+        # 10/27 和泉修正(駐車車両処理)
+        laneareaLength = traci.lanearea.getLength(approach_detector_id)
+        pos_score = "100"
+        number_score = "100"
+        sort_vehicle_ids = self.sort_vehicle_id(True, approach_detector_id, vehicleIDs)
+        i = 0
+        for id in sort_vehicle_ids:
+
+            # 車両認識で誤検出の場合次の車両へ
+            if not self.vehicle_info[str(id)]["VehicleRecognitionFlag"]:
+                continue
+
+            # 
+            # if not self.detection_lane_judge(approach_detector_id, tls_id, id, True):
+            #     continue
+                
+            # 車両位置取得
+            vehicle_position = self.set_vehicle_position(True, approach_detector_id, id, True)
+
+            # 車両全体が検出器に入っていない場合次に車両へ
+            if vehicle_position == None:
+                continue
+
+            # 車両が検出範囲内に入っていない場合次に車両へ
+            light_detection_range_max = 15
+            if detection_range_max > light_detection_range_max:
+                light_detection_range_max = detection_range_max
+            if nodeID == self.main_node_id and self.straight_detection_range != None:
+                detection_range_max = self.straight_detection_range
+            elif nodeID == self.sub_node_id and self.regulation_detection_range != None:
+                detection_range_max = self.regulation_detection_range
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
+                continue
+
+            # 規制側もしくはストレート側に島ありの場合、工事帯から10m以内の車両は反対車線で検出される
+            vehicleState = 0
+            if self.straight_island_flg or nodeID == self.sub_node_id:
+                if vehicle_position <= 10:
+                    vehicleState = 1
+                    self.sumo_log.info(nodeID + ": 進入車線にて工事帯から10m以内のため反対車線で検出")
+
+            # バウンディングボックス処理
+            vehicleBoundingBox = self.bounding_box(True, laneareaLength, vehicle_position)[1]
+
+            stopTime = str(self.get_vehicle_stop_time(id))
+            vehicleType = self.vehicle_info[str(id)]["VehicleType"]
+            number = self.vehicle_info[str(id)]["OutputNumber"]
+            topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
+            bottomRight = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
+            imageSize = self.set_image_size()
+            # 取得対象が先頭車両のみかどうか
+            if self.settings["FLAG_NUMBER_TARGET_FIRST_VEHICLE"] == "TRUE" and i > 0:
+                continue
+            value = {}
+            value['Number'] = number
+            value['Hiragana'] = ""
+            value['AreaCode'] = ""
+            value['Kanji'] = ""
+            value['Color'] = "-1"
+            value['StopTime'] = stopTime
+            value['VehicleType'] = vehicleType
+            value['VehicleState'] = str(vehicleState)
+            value['TopLeft'] = topLeft
+            value['BottomRight'] = bottomRight
+            value['ImageSize'] = imageSize
+            value['PosScore'] = pos_score
+            value['NumberScore'] = number_score
+            valuelist.append(value)
+            i += 1
+            #print(valuelist)
+            
+        # 離脱車両
+        # print(secession_detector_id)
+        secession_vehicle_ids = []
+        laneareaLength = 130
+        for detector_id in secession_detector_id:
+            # 10/27 和泉修正(駐車車両処理)
+            vehicleIDs = self.get_vehicle_ids_on_detector(detector_id)
+            # 10/27 和泉修正(駐車車両処理)
+            secession_vehicle_ids += vehicleIDs
+            # laneareaLength = traci.lanearea.getLength(detector_id)
+
+        pos_score = "100"
+        number_score = "100"
+        sort_vehicle_ids = self.sort_vehicle_id(False, detector_id, secession_vehicle_ids)
+        i = 0
+        for id in sort_vehicle_ids:
+            # print(vehicleIDs)
+
+            # 車両認識で誤検出の場合次の車両へ
+            if not self.vehicle_info[str(id)]["VehicleRecognitionFlag"]:
+                continue
+
+            # 
+            # if not self.detection_lane_judge(detector_id, tls_id, id, True):
+            #     continue
+
+            # 車両位置取得
+            vehicle_position = self.set_vehicle_position(False, detector_id, id, True)
+
+            # 車両全体が検出器に入っていない場合次に車両へ
+            if vehicle_position == None:
+                continue
+
+            # 車両が検出範囲内に入っていない場合次に車両へ
+            # detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+            light_detection_range_max = 15
+            if detection_range_max > light_detection_range_max:
+                light_detection_range_max = detection_range_max
+            if nodeID == self.main_node_id and self.straight_detection_range != None:
+                detection_range_max = self.straight_detection_range
+            elif nodeID == self.sub_node_id and self.regulation_detection_range != None:
+                detection_range_max = self.regulation_detection_range
+            if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
+                continue
+
+            # 規制側かつストレート側に島なしの場合、工事帯から10m以内の車両は反対車線で検出される
+            vehicleState = 1
+            if not self.straight_island_flg and nodeID == self.main_node_id:
+                if vehicle_position <= 10:
+                    vehicleState = 0
+                    self.sumo_log.info(nodeID + ": 離脱車線にて工事帯から10m以内のため反対車線で検出")
+
+            # バウンディングボックス処理
+            vehicleBoundingBox = self.bounding_box(False, laneareaLength, vehicle_position)[1]
+
+            stopTime = str(self.get_vehicle_stop_time(id))
+            vehicleType = self.vehicle_info[str(id)]["VehicleType"]
+            number = self.vehicle_info[str(id)]["OutputNumber"]
+            topLeft = ",".join([str(vehicleBoundingBox[0]), str(vehicleBoundingBox[1])])
+            bottomRight = ",".join([str(vehicleBoundingBox[2]), str(vehicleBoundingBox[3])])
+            imageSize = self.set_image_size()
+            # print(vehicle_position)
+            # print(i)
+            # print(number)
+            # 取得対象が先頭車両のみかどうか
+            if self.settings["FLAG_NUMBER_TARGET_FIRST_VEHICLE"] == "TRUE" and i > 0:
+                continue
+            value = {}
+            value['Number'] = number
+            value['Hiragana'] = ""
+            value['AreaCode'] = ""
+            value['Kanji'] = ""
+            value['Color'] = "-1"
+            value['StopTime'] = stopTime
+            value['VehicleType'] = vehicleType
+            value['VehicleState'] = str(vehicleState)
+            value['TopLeft'] = topLeft
+            value['BottomRight'] = bottomRight
+            value['ImageSize'] = imageSize
+            value['PosScore'] = pos_score
+            value['NumberScore'] = number_score
+            valuelist.append(value)
+            #print(valuelist)
+            i += 1
+        
+        # print(approach_detector_id)
+        # print(secession_detector_id)
+
+        # 車両未検出の場合
+        if len(valuelist) == 0:
+            value = {}
+            value['Number'] = ""
+            value['Hiragana'] = ""
+            value['AreaCode'] = ""
+            value['Kanji'] = ""
+            value['Color'] = "-1"
+            value['StopTime'] = ""
+            value['VehicleType'] = "-1"
+            value['VehicleState'] = "-1"
+            value['TopLeft'] = ""
+            value['BottomRight'] = ""
+            value['ImageSize'] = ""
+            value['PosScore'] = ""
+            value['NumberScore'] = ""
+            valuelist.append(value)
+        
+        command['Value'] = valuelist
+
+        # print(command)
+        return command
+
+    # ナンバープレート認識（枝道処理）(1/28)
+    def license_plate_recognition_branch(self, nodeID):
+        command = {}     # 送信データの雛形
+        valuelist = []
+        timeStamp = self.get_time()
+        approach_detector_lane = None
+        secession_detector_lane = None
+        tls_id = ""
+        detection_range_min = float(0)
+        detection_range_max = float(15)
+        # if "LICENSE_PLATE_DISTANCE_MIN" in self.settings:
+        #     detection_range_min = float(self.settings["LICENSE_PLATE_DISTANCE_MIN"])
+        # if "LICENSE_PLATE_DISTANCE_MAX" in self.settings:
+        #     detection_range_min = float(self.settings["LICENSE_PLATE_DISTANCE_MAX"])
+        if nodeID == self.main_node_id:
+            approach_detector_id = self.settings["STRAIGHT_APPROACH_DETECTOR"]
+            secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
+            detection_range = self.straight_range
+            tls_id = self.settings["STRAIGHT_TRAFFIC_LIGHT"]
+        elif nodeID == self.sub_node_id:
+            approach_detector_id = self.settings["REGULATION_APPROACH_DETECTOR"]
+            secession_detector_id = self.settings["REGULATION_SECESSION_DETECTOR"].split(",")
+            detection_range = self.regulation_range
+            tls_id = self.settings["REGULATION_TRAFFIC_LIGHT"]
+        else:
+            branch_data = self.get_branch_data(nodeID)
+            # print(branch_data)
+            approach_detector_id = branch_data["approach"]["id"][0]
+            secession_detector_id = branch_data["secession"]["id"]
+            detection_range = 0
+            detection_range_min = 0
+
+        self.sumo_log.info("-----検出範囲-----")
+        self.sumo_log.info(detection_range_min)
+        self.sumo_log.info(detection_range_max)
+        detection_range_min = detection_range_min + detection_range
+        detection_range_max = detection_range_max + detection_range
+        self.sumo_log.info(detection_range_min)
+        self.sumo_log.info(detection_range_max)
+        self.sumo_log.info("-----検出範囲-----")
+
+        command['CommandID'] = "0xF0080000"
         command['EventID'] = "_".join([nodeID, str(timeStamp)])
         command['TimeStamp'] = str(timeStamp)
 
