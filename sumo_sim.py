@@ -626,28 +626,28 @@ class SumoSim:
 
                 # print(node_id)
                 # ナンバープレート認識
-                if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
-                    f001_0700 = self.license_plate_recognition(node_id)
-                    if not self.is_disable_sensor(3 + branch_idx, 17, t_now_ms):
-                        # print(f001_0700)
-                        self.sumo_log.info(f001_0700)
-                        self.send(self.set_command(f001_0700))
+                # if self.settings["FLAG_LICENSE_PLATE_RECOGNITION"] == "TRUE":
+                #     f001_0700 = self.license_plate_recognition(node_id)
+                #     if not self.is_disable_sensor(3 + branch_idx, 17, t_now_ms):
+                #         # print(f001_0700)
+                #         self.sumo_log.info(f001_0700)
+                #         self.send(self.set_command(f001_0700))
 
-                # 車両認識（渋滞カメラ
-                if self.settings["FLAG_VEHICLE_RECOGNITION_TJ"] == "TRUE":
-                    f001_0800 = self.vehicle_recognition_TJ(node_id)
-                    if not self.is_disable_sensor(3 + branch_idx, 18, t_now_ms):
-                        # print(f001_0800)
-                        self.sumo_log.info(f001_0800)
-                        self.send(self.set_command(f001_0800))
+                # # 車両認識（渋滞カメラ
+                # if self.settings["FLAG_VEHICLE_RECOGNITION_TJ"] == "TRUE":
+                #     f001_0800 = self.vehicle_recognition_TJ(node_id)
+                #     if not self.is_disable_sensor(3 + branch_idx, 18, t_now_ms):
+                #         # print(f001_0800)
+                #         self.sumo_log.info(f001_0800)
+                #         self.send(self.set_command(f001_0800))
 
-                # 車両認識（ナンバープレート）
-                if self.settings["FLAG_VEHICLE_RECOGNITION_NP"] == "TRUE":
-                    f001_0900 = self.vehicle_recognition_NP(node_id)
-                    if not self.is_disable_sensor(3 + branch_idx, 19, t_now_ms):
-                        # print(f001_0900)
-                        self.sumo_log.info(f001_0900)
-                        self.send(self.set_command(f001_0900))
+                # # 車両認識（ナンバープレート）
+                # if self.settings["FLAG_VEHICLE_RECOGNITION_NP"] == "TRUE":
+                #     f001_0900 = self.vehicle_recognition_NP(node_id)
+                #     if not self.is_disable_sensor(3 + branch_idx, 19, t_now_ms):
+                #         # print(f001_0900)
+                #         self.sumo_log.info(f001_0900)
+                #         self.send(self.set_command(f001_0900))
 
                 branch_idx += 1
 
@@ -1199,6 +1199,8 @@ class SumoSim:
         approach_flag = "0"
         breakaway_flag = "0"
         unknown_flag = "0"
+        distance = ""
+        approach_speed = ""
         # 設定の検出範囲をセット
         detection_range_min = float(self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MIN"])
         detection_range_max = float(self.settings["APPROACH_BREAKAWAY_DETECTION_DISTANCE_MAX"])
@@ -1275,6 +1277,8 @@ class SumoSim:
 
             # 接近車両ありとみなし、ループ終了
             approach_flag = "1"
+            distance = math.floor(vehicle_position * 10 ** 1) / (10 ** 1)
+            approach_speed = speed
             self.sumo_log.info("vehiclePosition: " + str(vehicle_position))
             self.sumo_log.info("vehicleSpeed: " + str(speed))
             break
@@ -1336,6 +1340,8 @@ class SumoSim:
         value['ApproachFlg'] = approach_flag
         value['BreakawayFlg'] = breakaway_flag
         value['UnknownFlg'] = unknown_flag
+        value['Distance'] = str(distance)
+        value['Speed'] = str(approach_speed)
         # valuelist.append(value)
         
         command['Value'] = value
