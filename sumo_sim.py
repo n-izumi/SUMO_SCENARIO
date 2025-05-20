@@ -238,6 +238,8 @@ class SumoSim:
         # self.guide_traffic_light_sim_time = 0
         self.guide_traffic_light = ["-1", "-1"]
         self.collision_caution = False
+        self.time_lag = 0
+        self.change_time = 0
 
         if options.nogui:
             sumoBinary = sumolib.checkBinary('sumo')
@@ -726,7 +728,7 @@ class SumoSim:
             # １分ごとに送信するロジック
             if step > 0:
                 t_delta = t_now - t_old_branch
-                if t_delta >= 60:
+                if t_delta >= 2:
                     branch_idx = 0
                     for branch_node in self.branch_info:
                         node_id = branch_node["node_id"]
@@ -1588,7 +1590,7 @@ class SumoSim:
         secession_detector_lane = None
         tls_id = ""
         detection_range_min = float(0)
-        detection_range_max = float(15)
+        detection_range_max = float(30)
         # if "LICENSE_PLATE_DISTANCE_MIN" in self.settings:
         #     detection_range_min = float(self.settings["LICENSE_PLATE_DISTANCE_MIN"])
         # if "LICENSE_PLATE_DISTANCE_MAX" in self.settings:
@@ -2805,15 +2807,28 @@ class SumoSim:
 
     # 誘導状態更新
     def lane_state_update(self, value_list, system=1):
+        change_lane = ""
+        change_state = ""
         change_traffic_state = False
         for value in value_list:
             if self.traffic_state_judge(value["LaneKind"], value["SystemState"]):
+                change_lane = value["LaneKind"]
+                change_state = value["SystemState"]
                 change_traffic_state = True
                 break
+        
+        if change_state == "1" and self.time_lag == 0:
+            self.time_lag = self.time_lag_calc(change_lane)
+            self.change_time = datetime.datetime.now()
+
+        passed_time = datetime.datetime.now() - self.change_time
+        if passed_time.seconds < self.time_lag:
+            return
         
         if change_traffic_state or not system:
             for value in value_list:
                 self.set_traffic_state(value["LaneKind"], value["SystemState"], system)
+                self.time_lag = 0
         
         return
 
@@ -2862,6 +2877,45 @@ class SumoSim:
                 result[result_key] = -1
 
         return result
+
+    # 人の誘導でのタイムラグ計算
+    def time_lag_calc(self, lane):
+        time_lag = 0
+        secession_detector_id = []
+        vehicle_flg = 0
+        # ストレート側の場合、規制側が通過直後か判定
+        if lane == "0":
+            secession_detector_id = self.settings["REGULATION_SECESSION_DETECTOR"].split(",")
+        # 規制側の場合、ストレート側が通過直後か判定
+        elif lane == "1":
+            secession_detector_id = self.settings["STRAIGHT_SECESSION_DETECTOR"].split(",")
+        
+        
+        for detector_id in secession_detector_id:
+            vehicleIDs = self.get_vehicle_ids_on_detector(detector_id)
+            laneareaLength = traci.lanearea.getLength(detector_id)
+            for id in reversed(vehicleIDs):
+
+                # 車両位置取得
+                vehicle_position = self.set_vehicle_position(False, detector_id, id, True)
+
+                # 車両全体が検出器に入っていない場合次に車両へ
+                if vehicle_position == None:
+                    continue
+
+                # 車両が検出範囲内に入っていない場合次に車両へ
+                detection_range_max = float(self.settings["VEHICLE_DETECTION_DISTANCE_MAX"])
+                detection_range_min = float(self.settings["VEHICLE_DETECTION_DISTANCE_MIN"])
+                if vehicle_position < detection_range_min or vehicle_position > detection_range_max:
+                    continue
+
+                vehicle_flg = 1
+
+        # 検出範囲内にいる場合タイムラグ8秒
+        if vehicle_flg:
+            return 0
+        # 検出範囲内にいない場合タイムラグ3秒
+        return 0
 
     # 誘導信号変化履歴出力
     def traffic_guide_change_history(self):
